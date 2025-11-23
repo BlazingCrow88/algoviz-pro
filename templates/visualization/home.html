@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home - AlgoViz Pro{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="container">
+        <h1>Welcome to AlgoViz Pro</h1>
+        <p class="lead">Interactive Algorithm Visualization & Code Analysis Platform</p>
+        <div class="cta-buttons">
+            <a href="{% url 'visualization:visualize' %}" class="btn btn-primary">Start Visualizing</a>
+            <a href="{% url 'github_integration:search' %}" class="btn btn-secondary">Search GitHub</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <section class="features">
+        <h2>Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>🎨 Algorithm Visualization</h3>
+                <p>Watch sorting and searching algorithms work step-by-step with interactive controls.</p>
+                <ul>
+                    <li>Bubble Sort, Merge Sort, Quick Sort</li>
+                    <li>Binary Search, Linear Search, BFS</li>
+                    <li>Play/Pause/Step controls</li>
+                    <li>Real-time statistics</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>🐙 GitHub Integration</h3>
+                <p>Search and analyze real Python code from GitHub repositories.</p>
+                <ul>
+                    <li>Search repositories by keyword</li>
+                    <li>Fetch Python files</li>
+                    <li>Automatic caching</li>
+                    <li>Rate limit management</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>📊 Code Analysis</h3>
+                <p>Analyze code complexity using Python's AST module.</p>
+                <ul>
+                    <li>Cyclomatic complexity</li>
+                    <li>Function metrics</li>
+                    <li>Nesting depth analysis</li>
+                    <li>Performance recommendations</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="complexity-table">
+        <h2>Algorithm Complexity Reference</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Algorithm</th>
+                    <th>Best Case</th>
+                    <th>Average Case</th>
+                    <th>Worst Case</th>
+                    <th>Space</th>
+                    <th>Stable</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Bubble Sort</strong></td>
+                    <td>O(n)</td>
+                    <td>O(n²)</td>
+                    <td>O(n²)</td>
+                    <td>O(1)</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td><strong>Merge Sort</strong></td>
+                    <td>O(n log n)</td>
+                    <td>O(n log n)</td>
+                    <td>O(n log n)</td>
+                    <td>O(n)</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td><strong>Quick Sort</strong></td>
+                    <td>O(n log n)</td>
+                    <td>O(n log n)</td>
+                    <td>O(n²)</td>
+                    <td>O(log n)</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td><strong>Binary Search</strong></td>
+                    <td>O(1)</td>
+                    <td>O(log n)</td>
+                    <td>O(log n)</td>
+                    <td>O(1)</td>
+                    <td>N/A</td>
+                </tr>
+                <tr>
+                    <td><strong>Linear Search</strong></td>
+                    <td>O(1)</td>
+                    <td>O(n)</td>
+                    <td>O(n)</td>
+                    <td>O(1)</td>
+                    <td>N/A</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="about">
+        <h2>About This Project</h2>
+        <p>
+            AlgoViz Pro is a comprehensive algorithm visualization platform built for the 
+            INF601 Advanced Programming with Python course. It demonstrates:
+        </p>
+        <ul class="about-list">
+            <li>Modular Django application architecture (4 separate apps)</li>
+            <li>RESTful API integration with GitHub</li>
+            <li>Real-time data visualization using HTML5 Canvas</li>
+            <li>Code complexity analysis using Python's AST module</li>
+            <li>Comprehensive error handling and caching strategies</li>
+            <li>Professional documentation and testing practices</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AlgoViz Pro - Algorithm Visualization Platform{% endblock %}</title>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1><a href="{% url 'visualization:home' %}">AlgoViz Pro</a></h1>
+                <p class="tagline">Visualize & Analyze Algorithms</p>
+            </div>
+
+            <ul class="nav-menu">
+                <li><a href="{% url 'visualization:home' %}">Home</a></li>
+                <li><a href="{% url 'visualization:visualize' %}">Visualize</a></li>
+                <li><a href="{% url 'algorithms:list' %}">Algorithms</a></li>
+                <li><a href="{% url 'github_integration:search' %}">GitHub</a></li>
+                <li><a href="{% url 'analytics:home' %}">Analytics</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 AlgoViz Pro | INF601 Advanced Programming with Python | Brian Shoemaker</p>
+            <p>Computer Science Concentration</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
