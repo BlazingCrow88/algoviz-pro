@@ -1,7 +1,5 @@
 """
 URL patterns for github_integration app.
-
-Week 12: Placeholder file - will be completed in Week 13
 """
 from django.urls import path
 from . import views
@@ -9,6 +7,14 @@ from . import views
 app_name = 'github_integration'
 
 urlpatterns = [
-    # Placeholder - will add routes in Week 13
-    path('', views.placeholder_github, name='home'),
+    # Search repositories
+    path('', views.search_repositories, name='search'),
+    path('search/', views.search_repositories, name='search'),
+
+    # Repository details
+    path('repo/<str:owner>/<str:repo>/', views.repository_detail, name='repo_detail'),
+
+    # Fetch and view code
+    path('fetch-code/', views.fetch_code, name='fetch_code'),
+    path('code/<int:file_id>/', views.view_code, name='view_code'),
 ]
