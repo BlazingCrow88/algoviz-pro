@@ -1,20 +1,53 @@
 """
 Views for the visualization app.
 
-Week 12: Placeholder views - will be completed in Week 14
+Handles rendering of visualization pages.
 """
 from django.shortcuts import render
-from django.http import HttpResponse
+from algorithms.models import Algorithm
 
 
-def placeholder_home(request):
+def home(request):
     """
-    Placeholder home view for Week 12.
+    Landing page for AlgoViz Pro.
 
-    This will be replaced with actual visualization interface in Week 14.
+    Displays project overview, features, and complexity reference table.
     """
-    return HttpResponse(
-        "<h1>AlgoViz Pro - Visualization Coming Soon!</h1>"
-        "<p>Visualization interface will be added in Week 14.</p>"
-        "<p>For now, you can use the <a href='/algorithms/'>Algorithms API</a>.</p>"
-    )
+    # Get algorithm counts for display
+    sorting_count = Algorithm.objects.filter(category='SORT').count()
+    searching_count = Algorithm.objects.filter(category='SEARCH').count()
+    graph_count = Algorithm.objects.filter(category='GRAPH').count()
+
+    context = {
+        'sorting_count': sorting_count,
+        'searching_count': searching_count,
+        'graph_count': graph_count,
+        'total_algorithms': sorting_count + searching_count + graph_count,
+    }
+
+    return render(request, 'visualization/home.html', context)
+
+
+def visualize(request):
+    """
+    Main visualization page with interactive controls.
+
+    Provides interface for executing and visualizing algorithms
+    with step-by-step animation controls.
+    """
+    return render(request, 'visualization/visualize.html')
+
+
+def compare(request):
+    """
+    Side-by-side algorithm comparison page.
+
+    Allows users to compare performance of different algorithms.
+    """
+    algorithms = Algorithm.objects.all()
+
+    context = {
+        'algorithms': algorithms,
+    }
+
+    return render(request, 'visualization/compare.html', context)
