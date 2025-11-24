@@ -1,117 +1,219 @@
 {% extends 'base.html' %}
-{% load static %}
-
-{% block title %}Visualize Algorithms - AlgoViz Pro{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/visualization.css' %}">
-{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="viz-container">
     <h1>Algorithm Visualization</h1>
-    
-    <div class="visualization-controls">
-        <div class="control-group">
+
+    <div class="controls-section">
+        <div class="input-group">
             <label for="algorithm-select">Select Algorithm:</label>
-            <select id="algorithm-select" class="form-control">
-                <optgroup label="Sorting Algorithms">
-                    <option value="bubble">Bubble Sort</option>
-                    <option value="merge">Merge Sort</option>
-                    <option value="quick">Quick Sort</option>
-                </optgroup>
-                <optgroup label="Searching Algorithms">
-                    <option value="binary">Binary Search</option>
-                    <option value="linear">Linear Search</option>
-                </optgroup>
+            <select id="algorithm-select">
+                <option value="bubble">Bubble Sort</option>
+                <option value="merge">Merge Sort</option>
+                <option value="quick">Quick Sort</option>
             </select>
         </div>
 
-        <div class="control-group">
+        <div class="input-group">
             <label for="array-input">Input Array (comma-separated):</label>
-            <input 
-                type="text" 
-                id="array-input" 
-                class="form-control" 
-                placeholder="e.g., 5,2,8,1,9,3,7"
-                value="5,2,8,1,9,3,7,4,6"
-            >
+            <input type="text" id="array-input" value="5,2,8,1,9,3,7,4,6" />
         </div>
 
-        <div class="control-group" id="target-group" style="display: none;">
-            <label for="target-input">Target Value (for searching):</label>
-            <input 
-                type="number" 
-                id="target-input" 
-                class="form-control" 
-                placeholder="e.g., 7"
-                value="7"
-            >
+        <div class="button-group">
+            <button id="execute-btn" class="viz-btn viz-btn-primary">Execute</button>
+            <button id="play-btn" class="viz-btn viz-btn-success" disabled>Play</button>
+            <button id="pause-btn" class="viz-btn viz-btn-warning" disabled>Pause</button>
+            <button id="step-btn" class="viz-btn viz-btn-info" disabled>Step</button>
+            <button id="reset-btn" class="viz-btn viz-btn-danger" disabled>Reset</button>
         </div>
 
-        <div class="control-buttons">
-            <button id="execute-btn" class="btn btn-primary">Execute</button>
-            <button id="play-btn" class="btn btn-success" disabled>Play</button>
-            <button id="pause-btn" class="btn btn-warning" disabled>Pause</button>
-            <button id="step-btn" class="btn btn-info" disabled>Step</button>
-            <button id="reset-btn" class="btn btn-danger" disabled>Reset</button>
-        </div>
-
-        <div class="speed-control">
+        <div class="input-group">
             <label for="speed-slider">Animation Speed:</label>
-            <input type="range" id="speed-slider" min="1" max="10" value="5">
-            <span id="speed-value">Medium</span>
+            <input type="range" id="speed-slider" min="1" max="10" value="5" />
+            <span id="speed-label">Medium</span>
         </div>
     </div>
 
-    <div class="visualization-area">
-        <canvas id="visualization-canvas" width="800" height="400"></canvas>
+    <div class="canvas-container">
+        <canvas id="visualization-canvas" width="1000" height="400"></canvas>
     </div>
 
-    <div class="statistics-panel">
+    <div class="statistics">
         <h3>Statistics</h3>
-        <div class="stats-grid">
-            <div class="stat-item">
-                <span class="stat-label">Comparisons:</span>
-                <span id="comparisons-count" class="stat-value">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Swaps:</span>
-                <span id="swaps-count" class="stat-value">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Array Size:</span>
-                <span id="array-size" class="stat-value">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Current Step:</span>
-                <span id="current-step" class="stat-value">0 / 0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Time Elapsed:</span>
-                <span id="time-elapsed" class="stat-value">0 ms</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Status:</span>
-                <span id="status-message" class="stat-value">Ready</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="message-area">
-        <h3>Step Details</h3>
-        <div id="step-message" class="message-box">
-            Select an algorithm and click Execute to begin.
-        </div>
-    </div>
-
-    <div class="error-area" id="error-area" style="display: none;">
-        <h3>Error</h3>
-        <div id="error-message" class="error-box"></div>
+        <p>Comparisons: <span id="comparisons">0</span></p>
+        <p>Swaps: <span id="swaps">0</span></p>
+        <p>Array Size: <span id="array-size">0</span></p>
+        <p>Current Step: <span id="current-step">0</span> / <span id="total-steps">0</span></p>
+        <p>Time Elapsed: <span id="time-elapsed">0</span> ms</p>
+        <p>Status: <span id="status">Ready</span></p>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'js/visualizer.js' %}"></script>
+<style>
+    .viz-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .viz-container h1 {
+        color: #333;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .controls-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .input-group {
+        margin-bottom: 15px;
+    }
+
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #555;
+        font-weight: bold;
+    }
+
+    .input-group select,
+    .input-group input[type="text"] {
+        width: 100%;
+        max-width: 400px;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 1em;
+    }
+
+    .input-group input[type="range"] {
+        width: 300px;
+        vertical-align: middle;
+    }
+
+    #speed-label {
+        margin-left: 10px;
+        color: #666;
+        font-weight: bold;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 20px 0;
+    }
+
+    .viz-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+    }
+
+    .viz-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .viz-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .viz-btn-primary { background: #007bff; }
+    .viz-btn-success { background: #28a745; }
+    .viz-btn-warning { background: #ffc107; color: #333; }
+    .viz-btn-info { background: #17a2b8; }
+    .viz-btn-danger { background: #dc3545; }
+
+    .canvas-container {
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        display: flex;
+        justify-content: center;
+    }
+
+    #visualization-canvas {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .statistics {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
+    }
+
+    .statistics h3 {
+        margin-top: 0;
+        color: #007bff;
+    }
+
+    .statistics p {
+        margin: 8px 0;
+        color: #555;
+    }
+
+    .statistics span {
+        font-weight: bold;
+        color: #333;
+    }
+</style>
+
+<script>
+    // Basic JavaScript to enable buttons after execution
+    document.getElementById('execute-btn').addEventListener('click', function() {
+        document.getElementById('play-btn').disabled = false;
+        document.getElementById('pause-btn').disabled = false;
+        document.getElementById('step-btn').disabled = false;
+        document.getElementById('reset-btn').disabled = false;
+        document.getElementById('status').textContent = 'Executing...';
+
+        // Update statistics with sample data
+        document.getElementById('comparisons').textContent = '0';
+        document.getElementById('swaps').textContent = '0';
+        const arrayInput = document.getElementById('array-input').value;
+        const arraySize = arrayInput.split(',').length;
+        document.getElementById('array-size').textContent = arraySize;
+        document.getElementById('current-step').textContent = '0';
+        document.getElementById('total-steps').textContent = '?';
+
+        alert('Algorithm execution started! (Full visualization coming in Week 14)');
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', function() {
+        document.getElementById('play-btn').disabled = true;
+        document.getElementById('pause-btn').disabled = true;
+        document.getElementById('step-btn').disabled = true;
+        document.getElementById('reset-btn').disabled = true;
+        document.getElementById('status').textContent = 'Ready';
+        document.getElementById('comparisons').textContent = '0';
+        document.getElementById('swaps').textContent = '0';
+        document.getElementById('current-step').textContent = '0';
+        document.getElementById('time-elapsed').textContent = '0';
+    });
+
+    // Speed slider
+    document.getElementById('speed-slider').addEventListener('input', function() {
+        const speed = this.value;
+        const labels = ['Slowest', 'Slower', 'Slow', 'Medium', 'Medium', 'Medium', 'Fast', 'Faster', 'Fastest', 'Lightning'];
+        document.getElementById('speed-label').textContent = labels[speed - 1];
+    });
+</script>
 {% endblock %}
