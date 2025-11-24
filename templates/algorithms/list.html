@@ -3,33 +3,33 @@
 {% block content %}
 <div class="container">
     <h1>Available Algorithms</h1>
-    
+
     <div class="algorithm-grid">
         <div class="algorithm-card">
             <h3>🔵 Bubble Sort</h3>
             <p>Time: O(n²) | Space: O(1)</p>
             <p>Simple comparison-based sorting algorithm</p>
         </div>
-        
+
         <div class="algorithm-card">
             <h3>🟢 Merge Sort</h3>
             <p>Time: O(n log n) | Space: O(n)</p>
             <p>Divide-and-conquer sorting algorithm</p>
         </div>
-        
+
         <div class="algorithm-card">
             <h3>🟡 Quick Sort</h3>
             <p>Time: O(n log n) avg | Space: O(log n)</p>
             <p>Efficient partition-based sorting</p>
         </div>
-        
+
         <div class="algorithm-card">
             <h3>🔴 Binary Search</h3>
             <p>Time: O(log n) | Space: O(1)</p>
             <p>Fast search in sorted arrays</p>
         </div>
     </div>
-    
+
     <p><a href="{% url 'visualization:visualize' %}" class="btn">Try Visualizations →</a></p>
 </div>
 
