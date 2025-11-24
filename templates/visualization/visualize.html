@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="viz-container">
@@ -151,6 +152,7 @@
     #visualization-canvas {
         max-width: 100%;
         height: auto;
+        border: 1px solid #eee;
     }
 
     .statistics {
@@ -177,43 +179,220 @@
 </style>
 
 <script>
-    // Basic JavaScript to enable buttons after execution
-    document.getElementById('execute-btn').addEventListener('click', function() {
-        document.getElementById('play-btn').disabled = false;
-        document.getElementById('pause-btn').disabled = false;
-        document.getElementById('step-btn').disabled = false;
-        document.getElementById('reset-btn').disabled = false;
-        document.getElementById('status').textContent = 'Executing...';
+    // Global variables
+    let steps = [];
+    let currentStep = 0;
+    let isPlaying = false;
+    let animationInterval = null;
+    let startTime = 0;
 
-        // Update statistics with sample data
-        document.getElementById('comparisons').textContent = '0';
-        document.getElementById('swaps').textContent = '0';
+    const canvas = document.getElementById('visualization-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Get CSRF token for Django
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // Execute button click
+    document.getElementById('execute-btn').addEventListener('click', async function() {
+        const algorithm = document.getElementById('algorithm-select').value;
         const arrayInput = document.getElementById('array-input').value;
-        const arraySize = arrayInput.split(',').length;
-        document.getElementById('array-size').textContent = arraySize;
-        document.getElementById('current-step').textContent = '0';
-        document.getElementById('total-steps').textContent = '?';
 
-        alert('Algorithm execution started! (Full visualization coming in Week 14)');
+        document.getElementById('status').textContent = 'Loading...';
+
+        try {
+            const response = await fetch(`/algorithms/execute/${algorithm}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: `array=${encodeURIComponent(arrayInput)}`
+            });
+
+            const data = await response.json();
+
+            if (data.steps) {
+                steps = data.steps;
+                currentStep = 0;
+                startTime = Date.now();
+
+                document.getElementById('array-size').textContent = arrayInput.split(',').length;
+                document.getElementById('total-steps').textContent = steps.length;
+                document.getElementById('current-step').textContent = '0';
+                document.getElementById('status').textContent = 'Ready to visualize';
+
+                // Enable control buttons
+                document.getElementById('play-btn').disabled = false;
+                document.getElementById('step-btn').disabled = false;
+                document.getElementById('reset-btn').disabled = false;
+
+                // Draw initial state
+                drawStep(steps[0]);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('status').textContent = 'Error executing algorithm';
+            alert('Error: ' + error.message);
+        }
     });
 
+    // Play button
+    document.getElementById('play-btn').addEventListener('click', function() {
+        if (!isPlaying && currentStep < steps.length) {
+            isPlaying = true;
+            document.getElementById('play-btn').disabled = true;
+            document.getElementById('pause-btn').disabled = false;
+            document.getElementById('status').textContent = 'Playing...';
+
+            const speed = parseInt(document.getElementById('speed-slider').value);
+            const delay = 1100 - (speed * 100); // 1000ms (slow) to 100ms (fast)
+
+            animationInterval = setInterval(() => {
+                if (currentStep < steps.length - 1) {
+                    currentStep++;
+                    drawStep(steps[currentStep]);
+                    updateStatistics();
+                } else {
+                    // Animation complete
+                    clearInterval(animationInterval);
+                    isPlaying = false;
+                    document.getElementById('play-btn').disabled = false;
+                    document.getElementById('pause-btn').disabled = true;
+                    document.getElementById('status').textContent = 'Complete!';
+                }
+            }, delay);
+        }
+    });
+
+    // Pause button
+    document.getElementById('pause-btn').addEventListener('click', function() {
+        if (isPlaying) {
+            clearInterval(animationInterval);
+            isPlaying = false;
+            document.getElementById('play-btn').disabled = false;
+            document.getElementById('pause-btn').disabled = true;
+            document.getElementById('status').textContent = 'Paused';
+        }
+    });
+
+    // Step button
+    document.getElementById('step-btn').addEventListener('click', function() {
+        if (currentStep < steps.length - 1) {
+            currentStep++;
+            drawStep(steps[currentStep]);
+            updateStatistics();
+            document.getElementById('status').textContent = `Step ${currentStep} of ${steps.length}`;
+        }
+    });
+
+    // Reset button
     document.getElementById('reset-btn').addEventListener('click', function() {
-        document.getElementById('play-btn').disabled = true;
-        document.getElementById('pause-btn').disabled = true;
-        document.getElementById('step-btn').disabled = true;
-        document.getElementById('reset-btn').disabled = true;
-        document.getElementById('status').textContent = 'Ready';
+        if (animationInterval) {
+            clearInterval(animationInterval);
+        }
+        isPlaying = false;
+        currentStep = 0;
+
+        if (steps.length > 0) {
+            drawStep(steps[0]);
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
         document.getElementById('comparisons').textContent = '0';
         document.getElementById('swaps').textContent = '0';
         document.getElementById('current-step').textContent = '0';
         document.getElementById('time-elapsed').textContent = '0';
+        document.getElementById('status').textContent = 'Reset - Ready';
+
+        document.getElementById('play-btn').disabled = false;
+        document.getElementById('pause-btn').disabled = true;
     });
 
     // Speed slider
     document.getElementById('speed-slider').addEventListener('input', function() {
         const speed = this.value;
-        const labels = ['Slowest', 'Slower', 'Slow', 'Medium', 'Medium', 'Medium', 'Fast', 'Faster', 'Fastest', 'Lightning'];
+        const labels = ['Slowest', 'Slower', 'Slow', 'Medium-', 'Medium', 'Medium+', 'Fast', 'Faster', 'Fastest', 'Lightning'];
         document.getElementById('speed-label').textContent = labels[speed - 1];
     });
+
+    // Draw visualization on canvas
+    function drawStep(step) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!step || !step.array) return;
+
+        const arr = step.array;
+        const n = arr.length;
+        const barWidth = Math.min(60, canvas.width / n - 10);
+        const maxVal = Math.max(...arr);
+
+        for (let i = 0; i < n; i++) {
+            const barHeight = (arr[i] / maxVal) * (canvas.height - 50);
+            const x = i * (canvas.width / n) + (canvas.width / n - barWidth) / 2;
+            const y = canvas.height - barHeight - 20;
+
+            // Determine bar color
+            let color = '#3498db'; // Default blue
+
+            if (step.comparing && step.comparing.includes(i)) {
+                color = '#e74c3c'; // Red for comparing
+            } else if (step.swapped && step.swapped.includes(i)) {
+                color = '#f39c12'; // Orange for swapped
+            } else if (step.sorted_region && step.sorted_region.includes(i)) {
+                color = '#2ecc71'; // Green for sorted
+            }
+
+            // Draw bar
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, barWidth, barHeight);
+
+            // Draw value
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(arr[i], x + barWidth / 2, canvas.height - 5);
+        }
+
+        // Draw message
+        if (step.message) {
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(step.message, 10, 20);
+        }
+    }
+
+    // Update statistics
+    function updateStatistics() {
+        if (currentStep >= 0 && currentStep < steps.length) {
+            const step = steps[currentStep];
+
+            if (step.comparisons !== undefined) {
+                document.getElementById('comparisons').textContent = step.comparisons;
+            }
+            if (step.swaps !== undefined) {
+                document.getElementById('swaps').textContent = step.swaps;
+            }
+
+            document.getElementById('current-step').textContent = currentStep;
+            const elapsed = Date.now() - startTime;
+            document.getElementById('time-elapsed').textContent = elapsed;
+        }
+    }
 </script>
 {% endblock %}
