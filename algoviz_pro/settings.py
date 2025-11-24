@@ -30,10 +30,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Your custom apps for algorithm visualization
-    'algorithms.apps.AlgorithmsConfig',
-    'visualization.apps.VisualizationConfig',
-    'github_integration.apps.GithubIntegrationConfig',
-    'analytics.apps.AnalyticsConfig',
+    'algorithms',
+    'visualization',
+    'github_integration',
+    'analytics',
 ]
 
 MIDDLEWARE = [
