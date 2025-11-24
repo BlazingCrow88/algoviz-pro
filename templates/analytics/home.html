@@ -16,10 +16,54 @@
     </div>
     
     <p><strong>Coming Soon!</strong> This feature will analyze code from GitHub repositories.</p>
+
+    <p><a href="{% url 'github_integration:search' %}" class="btn">Search GitHub →</a></p>
 </div>
 
 <style>
-    .container { max-width: 800px; margin: 50px auto; padding: 20px; }
-    .feature-box { background: #f8f9fa; border-left: 4px solid #007bff; padding: 20px; margin: 20px 0; }
+    .container {
+        max-width: 800px;
+        margin: 100px auto 50px auto;
+        padding: 20px;
+    }
+    .container h1 {
+        color: #333;
+        margin-bottom: 10px;
+    }
+    .container p {
+        color: #666;
+        font-size: 1.1em;
+    }
+    .feature-box {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 4px;
+    }
+    .feature-box h3 {
+        margin-top: 0;
+        color: #007bff;
+    }
+    .feature-box ul {
+        margin: 15px 0;
+        padding-left: 20px;
+    }
+    .feature-box li {
+        margin: 8px 0;
+        color: #555;
+    }
+    .btn {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+    .btn:hover {
+        background: #0056b3;
+    }
 </style>
 {% endblock %}
