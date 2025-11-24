@@ -3,21 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AlgoViz Pro - Algorithm Visualization Platform{% endblock %}</title>
+    <title>{% block title %}AlgoViz Pro{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    {% block extra_css %}{% endblock %}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Navigation Bar */
+        nav {
+            background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        nav .logo {
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        nav .logo span {
+            font-size: 0.8em;
+            opacity: 0.9;
+            display: block;
+            font-weight: normal;
+        }
+
+        nav .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        nav .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 1.1em;
+            transition: opacity 0.3s;
+        }
+
+        nav .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        /* Main Content */
+        main {
+            margin-top: 80px;
+            padding: 20px;
+        }
+
+        /* Footer */
+        footer {
+            background: #1a1a2e;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 50px;
+        }
+
+        footer p {
+            margin: 5px 0;
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <div class="nav-brand">
-                <h1><a href="{% url 'visualization:home' %}">AlgoViz Pro</a></h1>
-                <p class="tagline">Visualize & Analyze Algorithms</p>
-            </div>
-
-            <ul class="nav-menu">
+    <nav>
+        <div class="nav-container">
+            <a href="{% url 'visualization:home' %}" class="logo">
+                AlgoViz Pro
+                <span>Visualize & Analyze Algorithms</span>
+            </a>
+            <ul class="nav-links">
                 <li><a href="{% url 'visualization:home' %}">Home</a></li>
                 <li><a href="{% url 'visualization:visualize' %}">Visualize</a></li>
                 <li><a href="{% url 'algorithms:list' %}">Algorithms</a></li>
@@ -27,19 +106,14 @@
         </div>
     </nav>
 
-    <main class="main-content">
+    <main>
         {% block content %}
         {% endblock %}
     </main>
 
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2024 AlgoViz Pro | INF601 Advanced Programming with Python | Brian Shoemaker</p>
-            <p>Computer Science Concentration</p>
-        </div>
+    <footer>
+        <p>© 2024 AlgoViz Pro | INF601 Advanced Programming with Python | Brian Shoemaker</p>
+        <p>Computer Science Concentration</p>
     </footer>
-
-    <script src="{% static 'js/main.js' %}"></script>
-    {% block extra_js %}{% endblock %}
 </body>
 </html>
