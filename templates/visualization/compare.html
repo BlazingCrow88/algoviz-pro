@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h1>Compare Algorithms</h1>
+    <div class="compare-grid">
+        <div class="compare-column">
+            <h2>Algorithm 1</h2>
+            <select id="algo1">
+                <option value="bubble">Bubble Sort</option>
+                <option value="merge">Merge Sort</option>
+                <option value="quick">Quick Sort</option>
+            </select>
+            <canvas id="canvas1" width="500" height="400"></canvas>
+        </div>
+        <div class="compare-column">
+            <h2>Algorithm 2</h2>
+            <select id="algo2">
+                <option value="bubble">Bubble Sort</option>
+                <option value="merge">Merge Sort</option>
+                <option value="quick">Quick Sort</option>
+            </select>
+            <canvas id="canvas2" width="500" height="400"></canvas>
+        </div>
+    </div>
+    <button id="run-comparison">Compare</button>
+</div>
+{% endblock %}

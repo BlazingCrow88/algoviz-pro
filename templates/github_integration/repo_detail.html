@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h1>{{ repo_data.full_name }}</h1>
+    <p>{{ repo_data.description }}</p>
+    <div class="stats">
+        <span>⭐ {{ repo_data.stargazers_count }}</span>
+        <span>🍴 {{ repo_data.forks_count }}</span>
+        <span>📝 {{ repo_data.language }}</span>
+    </div>
+    
+    <h2>Python Files</h2>
+    {% for file in python_files %}
+    <div class="file-item">
+        <p>{{ file.path }}</p>
+        <form method="post" action="{% url 'github_integration:fetch_code' %}">
+            {% csrf_token %}
+            <input type="hidden" name="owner" value="{{ repository.owner }}">
+            <input type="hidden" name="repo" value="{{ repository.name }}">
+            <input type="hidden" name="path" value="{{ file.path }}">
+            <button type="submit">Fetch & Analyze</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

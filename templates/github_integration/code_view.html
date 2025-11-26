@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h1>{{ code_file.path }}</h1>
+    <pre><code>{{ code_file.content }}</code></pre>
+    <a href="{% url 'analytics:analyze' %}" class="btn">Analyze Complexity →</a>
+</div>
+{% endblock %}
