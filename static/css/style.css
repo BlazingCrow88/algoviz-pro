@@ -253,7 +253,7 @@ body {
     margin-right: 8px;
 }
 
-/* Complexity Table */
+/* Complexity Table - UPDATED FOR BETTER SPACING */
 .complexity-table {
     margin: 60px 0;
 }
@@ -272,11 +272,12 @@ body {
     box-shadow: var(--box-shadow);
     border-radius: var(--border-radius);
     overflow: hidden;
+    table-layout: fixed; /* Ensures consistent column widths */
 }
 
 .complexity-table th,
 .complexity-table td {
-    padding: 15px;
+    padding: 18px 24px; /* Increased padding for better spacing */
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
@@ -285,10 +286,59 @@ body {
     background-color: var(--primary-color);
     color: white;
     font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.complexity-table td {
+    font-size: 0.95rem;
+}
+
+/* Column widths for better spacing */
+.complexity-table th:first-child,
+.complexity-table td:first-child {
+    width: 18%;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.complexity-table th:nth-child(2),
+.complexity-table td:nth-child(2),
+.complexity-table th:nth-child(3),
+.complexity-table td:nth-child(3),
+.complexity-table th:nth-child(4),
+.complexity-table td:nth-child(4) {
+    width: 18%;
+    text-align: center;
+    font-family: var(--font-mono);
+}
+
+.complexity-table th:nth-child(5),
+.complexity-table td:nth-child(5) {
+    width: 14%;
+    text-align: center;
+    font-family: var(--font-mono);
+}
+
+.complexity-table th:nth-child(6),
+.complexity-table td:nth-child(6) {
+    width: 14%;
+    text-align: center;
+}
+
+/* Zebra striping for better readability */
+.complexity-table tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+.complexity-table tbody tr:nth-child(odd) {
+    background-color: white;
 }
 
 .complexity-table tbody tr:hover {
-    background-color: var(--bg-secondary);
+    background-color: #e0e7ff;
+    transition: background-color 0.2s ease;
 }
 
 /* About Section */
@@ -392,5 +442,15 @@ body {
 
     .complexity-table {
         overflow-x: auto;
+    }
+
+    .complexity-table table {
+        min-width: 700px; /* Prevents squishing on mobile */
+    }
+
+    .complexity-table th,
+    .complexity-table td {
+        padding: 12px 16px; /* Slightly less padding on mobile */
+        font-size: 0.85rem;
     }
 }
