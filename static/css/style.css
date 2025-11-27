@@ -458,6 +458,30 @@ body {
     padding: 2rem;
 }
 
+/* Feature Box */
+.feature-box {
+    background: var(--bg-secondary);
+    border-left: 4px solid var(--primary-color);
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: var(--border-radius);
+}
+
+.feature-box h3 {
+    margin-top: 0;
+    color: var(--primary-color);
+}
+
+.feature-box ul {
+    margin: 15px 0;
+    padding-left: 20px;
+}
+
+.feature-box li {
+    margin: 8px 0;
+    color: var(--text-secondary);
+}
+
 /* Responsive Design - SINGLE MERGED SECTION */
 @media (max-width: 768px) {
     .nav-menu {
