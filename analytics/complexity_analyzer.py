@@ -5,9 +5,7 @@ This module analyzes Python source code to calculate various complexity metrics
 including cyclomatic complexity, function metrics, and code quality indicators.
 """
 import ast
-import re
-from typing import Dict, List, Any, Optional
-from collections import defaultdict
+from typing import Dict, List, Any, Union
 
 
 class ComplexityAnalyzer:
@@ -30,9 +28,10 @@ class ComplexityAnalyzer:
 
     def __init__(self):
         """Initialize the analyzer."""
+        self.metrics: Dict[str, Any] = {}
         self.reset()
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset all metrics to initial state."""
         self.metrics = {
             'cyclomatic_complexity': 0,
@@ -107,7 +106,7 @@ class ComplexityAnalyzer:
         except SyntaxError as e:
             raise SyntaxError(f"Invalid Python syntax: {str(e)}")
 
-    def _analyze_lines(self, source_code: str):
+    def _analyze_lines(self, source_code: str) -> None:
         """Analyze line-based metrics."""
         lines = source_code.split('\n')
         self.metrics['total_lines'] = len(lines)
@@ -125,7 +124,7 @@ class ComplexityAnalyzer:
                 if '#' in line:
                     self.metrics['comment_lines'] += 1
 
-    def _analyze_ast(self, tree: ast.AST):
+    def _analyze_ast(self, tree: ast.AST) -> None:
         """Analyze the Abstract Syntax Tree."""
         for node in ast.walk(tree):
             # Count functions
@@ -142,7 +141,9 @@ class ComplexityAnalyzer:
 
             # Count imports
             elif isinstance(node, (ast.Import, ast.ImportFrom)):
-                self.metrics['imports'].append(self._get_import_info(node))
+                import_info = self._get_import_info(node)
+                if import_info:
+                    self.metrics['imports'].append(import_info)
 
     def _analyze_function(self, node: ast.FunctionDef) -> Dict[str, Any]:
         """
@@ -170,18 +171,21 @@ class ComplexityAnalyzer:
 
         return func_info
 
-    def _analyze_class(self, node: ast.ClassDef) -> Dict[str, Any]:
+    @staticmethod
+    def _analyze_class(node: ast.ClassDef) -> Dict[str, Any]:
         """Analyze a class definition."""
         methods = [n for n in node.body if isinstance(n, ast.FunctionDef)]
+        method_names = [m.name for m in methods]
 
         return {
             'name': node.name,
             'line_number': node.lineno,
             'num_methods': len(methods),
-            'method_names': [m.name for m in methods],
+            'method_names': method_names,
         }
 
-    def _calculate_cyclomatic_complexity(self, node: ast.AST) -> int:
+    @staticmethod
+    def _calculate_cyclomatic_complexity(node: ast.AST) -> int:
         """
         Calculate McCabe cyclomatic complexity for a node.
 
@@ -215,7 +219,8 @@ class ComplexityAnalyzer:
 
         return complexity
 
-    def _calculate_max_depth(self, node: ast.AST, current_depth: int = 0) -> int:
+    @staticmethod
+    def _calculate_max_depth(node: ast.AST, current_depth: int = 0) -> int:
         """
         Calculate maximum nesting depth.
 
@@ -226,25 +231,29 @@ class ComplexityAnalyzer:
         """
         max_depth = current_depth
 
+        nesting_nodes = (ast.If, ast.For, ast.While, ast.With,
+                        ast.Try, ast.FunctionDef, ast.ClassDef)
+
         for child in ast.iter_child_nodes(node):
             # Increase depth for nesting structures
-            if isinstance(child, (ast.If, ast.For, ast.While, ast.With,
-                                  ast.Try, ast.FunctionDef, ast.ClassDef)):
-                child_depth = self._calculate_max_depth(child, current_depth + 1)
-                max_depth = max(max_depth, child_depth)
+            if isinstance(child, nesting_nodes):
+                child_depth = ComplexityAnalyzer._calculate_max_depth(child, current_depth + 1)
             else:
-                child_depth = self._calculate_max_depth(child, current_depth)
-                max_depth = max(max_depth, child_depth)
+                child_depth = ComplexityAnalyzer._calculate_max_depth(child, current_depth)
+
+            max_depth = max(max_depth, child_depth)
 
         return max_depth
 
-    def _count_function_lines(self, node: ast.FunctionDef) -> int:
+    @staticmethod
+    def _count_function_lines(node: ast.FunctionDef) -> int:
         """Count lines of code in a function."""
-        if not hasattr(node, 'end_lineno'):
+        if not hasattr(node, 'end_lineno') or node.end_lineno is None:
             return 1
         return node.end_lineno - node.lineno + 1
 
-    def _get_import_info(self, node: ast.AST) -> Dict[str, Any]:
+    @staticmethod
+    def _get_import_info(node: Union[ast.Import, ast.ImportFrom]) -> Dict[str, Any]:
         """Extract import information."""
         if isinstance(node, ast.Import):
             return {
@@ -254,9 +263,10 @@ class ComplexityAnalyzer:
         elif isinstance(node, ast.ImportFrom):
             return {
                 'type': 'from_import',
-                'module': node.module,
+                'module': node.module or '',
                 'names': [alias.name for alias in node.names]
             }
+        return {}
 
     def _calculate_total_complexity(self) -> int:
         """Calculate total cyclomatic complexity across all functions."""
@@ -300,9 +310,10 @@ class ComplexityAnalyzer:
         # Check individual function complexity
         complex_functions = [f for f in self.metrics['functions'] if f['complexity'] > 10]
         if complex_functions:
+            func_names = ', '.join(f['name'] for f in complex_functions[:3])
             recommendations.append(
                 f"⚠️ {len(complex_functions)} function(s) have high complexity (>10). "
-                f"Consider refactoring: {', '.join(f['name'] for f in complex_functions[:3])}"
+                f"Consider refactoring: {func_names}"
             )
 
         # Check nesting depth
@@ -345,28 +356,17 @@ class ComplexityAnalyzer:
         if not self.metrics:
             return "No analysis performed yet."
 
-        report = []
-        report.append("=" * 60)
-        report.append("CODE COMPLEXITY ANALYSIS REPORT")
-        report.append("=" * 60)
-        report.append("")
+        report = ["=" * 60, "CODE COMPLEXITY ANALYSIS REPORT", "=" * 60, "", "OVERALL METRICS:",
+                  f"  Total Lines: {self.metrics['total_lines']}", f"  Code Lines: {self.metrics['code_lines']}",
+                  f"  Comment Lines: {self.metrics['comment_lines']}", f"  Blank Lines: {self.metrics['blank_lines']}",
+                  f"  Cyclomatic Complexity: {self.metrics['cyclomatic_complexity']}",
+                  f"  Maintainability Index: {self.metrics['maintainability_index']}/100", "", "CODE STRUCTURE:",
+                  f"  Functions: {self.metrics['num_functions']}", f"  Classes: {self.metrics['num_classes']}",
+                  f"  Max Nesting Depth: {self.metrics['max_nesting_depth']}", ""]
 
         # Overall metrics
-        report.append("OVERALL METRICS:")
-        report.append(f"  Total Lines: {self.metrics['total_lines']}")
-        report.append(f"  Code Lines: {self.metrics['code_lines']}")
-        report.append(f"  Comment Lines: {self.metrics['comment_lines']}")
-        report.append(f"  Blank Lines: {self.metrics['blank_lines']}")
-        report.append(f"  Cyclomatic Complexity: {self.metrics['cyclomatic_complexity']}")
-        report.append(f"  Maintainability Index: {self.metrics['maintainability_index']}/100")
-        report.append("")
 
         # Structure
-        report.append("CODE STRUCTURE:")
-        report.append(f"  Functions: {self.metrics['num_functions']}")
-        report.append(f"  Classes: {self.metrics['num_classes']}")
-        report.append(f"  Max Nesting Depth: {self.metrics['max_nesting_depth']}")
-        report.append("")
 
         # Functions
         if self.metrics['functions']:

@@ -72,6 +72,7 @@ def repository_detail(request, owner, repo):
     Display detailed information about a repository.
 
     Args:
+        request: HTTP request object
         owner: Repository owner username
         repo: Repository name
     """
@@ -219,6 +220,7 @@ def view_code(request, file_id):
     Display a fetched code file with syntax highlighting.
 
     Args:
+        request: HTTP request object
         file_id: ID of CodeFile to display
     """
     code_file = get_object_or_404(CodeFile, id=file_id)

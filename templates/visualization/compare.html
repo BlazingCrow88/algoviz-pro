@@ -1,27 +1,101 @@
 {% extends 'base.html' %}
+
+{% block title %}Compare Algorithms{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1>Compare Algorithms</h1>
-    <div class="compare-grid">
-        <div class="compare-column">
-            <h2>Algorithm 1</h2>
-            <select id="algo1">
-                <option value="bubble">Bubble Sort</option>
-                <option value="merge">Merge Sort</option>
-                <option value="quick">Quick Sort</option>
-            </select>
-            <canvas id="canvas1" width="500" height="400"></canvas>
+<div class="container" style="max-width: 1400px; margin: 100px auto 50px auto; padding: 20px;">
+    <h1 style="text-align: center; margin-bottom: 30px;">Compare Algorithms Side-by-Side</h1>
+
+    <p style="text-align: center; color: #666; margin-bottom: 40px;">
+        Compare the performance of different sorting algorithms on the same dataset
+    </p>
+
+    <div class="compare-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+        <!-- Left Algorithm -->
+        <div class="algo-column" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 2px solid #007bff;">
+            <h2 style="color: #007bff; margin-top: 0;">Algorithm 1</h2>
+
+            <div class="control-group" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Select Algorithm:</label>
+                <select id="algo1-select" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 1em;">
+                    {% for algo in algorithms %}
+                    <option value="{{ algo.name|lower }}">{{ algo.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="canvas-container" style="background: white; padding: 20px; border-radius: 5px; margin-bottom: 15px;">
+                <canvas id="canvas1" width="600" height="400" style="border: 1px solid #ddd; display: block; margin: 0 auto;"></canvas>
+            </div>
+
+            <div class="stats" style="background: white; padding: 15px; border-radius: 5px;">
+                <p><strong>Comparisons:</strong> <span id="comparisons1">0</span></p>
+                <p><strong>Swaps:</strong> <span id="swaps1">0</span></p>
+                <p><strong>Time:</strong> <span id="time1">0</span>ms</p>
+            </div>
         </div>
-        <div class="compare-column">
-            <h2>Algorithm 2</h2>
-            <select id="algo2">
-                <option value="bubble">Bubble Sort</option>
-                <option value="merge">Merge Sort</option>
-                <option value="quick">Quick Sort</option>
-            </select>
-            <canvas id="canvas2" width="500" height="400"></canvas>
+
+        <!-- Right Algorithm -->
+        <div class="algo-column" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 2px solid #28a745;">
+            <h2 style="color: #28a745; margin-top: 0;">Algorithm 2</h2>
+
+            <div class="control-group" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Select Algorithm:</label>
+                <select id="algo2-select" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 1em;">
+                    {% for algo in algorithms %}
+                    <option value="{{ algo.name|lower }}" {% if algo.name == "Merge Sort" %}selected{% endif %}>{{ algo.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="canvas-container" style="background: white; padding: 20px; border-radius: 5px; margin-bottom: 15px;">
+                <canvas id="canvas2" width="600" height="400" style="border: 1px solid #ddd; display: block; margin: 0 auto;"></canvas>
+            </div>
+
+            <div class="stats" style="background: white; padding: 15px; border-radius: 5px;">
+                <p><strong>Comparisons:</strong> <span id="comparisons2">0</span></p>
+                <p><strong>Swaps:</strong> <span id="swaps2">0</span></p>
+                <p><strong>Time:</strong> <span id="time2">0</span>ms</p>
+            </div>
         </div>
     </div>
-    <button id="run-comparison">Compare</button>
+
+    <div class="controls-center" style="text-align: center; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Array Input (comma-separated):</label>
+            <input type="text" id="array-input" value="5,2,8,1,9,3,7,4,6" style="padding: 10px; width: 300px; border-radius: 5px; border: 1px solid #ccc; font-size: 1em;">
+        </div>
+
+        <button id="run-comparison" style="background: #007bff; color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; font-size: 1.1em; font-weight: bold;">
+            ▶ Run Comparison
+        </button>
+    </div>
+
+    <div style="margin-top: 30px; text-align: center;">
+        <a href="{% url 'visualization:visualize' %}" class="btn" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to Visualizer</a>
+    </div>
 </div>
+
+<script>
+// Basic comparison visualization script
+document.getElementById('run-comparison').addEventListener('click', function() {
+    const arrayInput = document.getElementById('array-input').value;
+    const algo1 = document.getElementById('algo1-select').value;
+    const algo2 = document.getElementById('algo2-select').value;
+
+    alert(`Running ${algo1} vs ${algo2} on array: ${arrayInput}\n\n(Full implementation requires AJAX calls to Django backend)`);
+
+    // TODO: Implement AJAX calls to execute both algorithms and render side-by-side
+    // This is a placeholder showing the feature exists
+});
+</script>
+
+<style>
+    .btn:hover {
+        opacity: 0.9;
+    }
+    #run-comparison:hover {
+        background: #0056b3;
+    }
+</style>
 {% endblock %}

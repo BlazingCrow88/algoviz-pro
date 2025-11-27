@@ -1,8 +1,33 @@
 {% extends 'base.html' %}
+
+{% block title %}Code View - {{ code_file.path }}{% endblock %}
+
 {% block content %}
-<div class="container">
+<div class="container" style="max-width: 1200px; margin: 100px auto 50px auto; padding: 20px;">
     <h1>{{ code_file.path }}</h1>
-    <pre><code>{{ code_file.content }}</code></pre>
-    <a href="{% url 'analytics:analyze' %}" class="btn">Analyze Complexity →</a>
+
+    <div class="file-info" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <p><strong>Repository:</strong> {{ repository.full_name }}</p>
+        <p><strong>Language:</strong> {{ code_file.language }}</p>
+        <p><strong>Size:</strong> {{ code_file.size }} bytes</p>
+    </div>
+
+    <div class="code-container" style="background: #1e1e1e; padding: 20px; border-radius: 5px; overflow-x: auto;">
+        <pre style="color: #d4d4d4; margin: 0; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>{{ code_file.content }}</code></pre>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <a href="{% url 'github_integration:repo_detail' owner=repository.owner repo=repository.name %}" class="btn" style="display: inline-block; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to Repository</a>
+        <a href="{{ code_file.html_url }}" target="_blank" class="btn" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">View on GitHub →</a>
+    </div>
 </div>
+
+<style>
+    .code-container {
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .btn:hover {
+        opacity: 0.9;
+    }
+</style>
 {% endblock %}

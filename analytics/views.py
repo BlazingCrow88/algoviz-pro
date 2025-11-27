@@ -12,7 +12,6 @@ import logging
 
 from .complexity_analyzer import ComplexityAnalyzer
 from .models import AnalysisResult, FunctionMetric
-from github_integration.models import CodeFile
 
 logger = logging.getLogger(__name__)
 

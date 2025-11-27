@@ -6,7 +6,6 @@ execution logs for benchmarking purposes.
 """
 from django.db import models
 from django.core.validators import MinValueValidator
-from django.utils import timezone
 
 
 class Algorithm(models.Model):

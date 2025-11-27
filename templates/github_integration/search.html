@@ -1,28 +1,30 @@
 {% extends 'base.html' %}
 
+{# noinspection CssUnknownTarget,SpellCheckingInspection,GrazieInspection #}
+
 {% block title %}Search GitHub - AlgoViz Pro{% endblock %}
 
 {% block content %}
 <div class="container">
     <h1>Search GitHub Repositories</h1>
-    
+
     <div class="search-form">
         <form method="post">
             {% csrf_token %}
-            
+
             <div class="form-group">
                 <label for="query">Search Query:</label>
-                <input 
-                    type="text" 
-                    id="query" 
-                    name="query" 
-                    class="form-control" 
+                <input
+                    type="text"
+                    id="query"
+                    name="query"
+                    class="form-control"
                     placeholder="e.g., django, machine learning, algorithms"
                     value="{{ query }}"
                     required
                 >
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label for="language">Language:</label>
@@ -34,7 +36,7 @@
                         <option value="go">Go</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="sort">Sort By:</label>
                     <select id="sort" name="sort" class="form-control">
@@ -44,28 +46,28 @@
                     </select>
                 </div>
             </div>
-            
+
             <button type="submit" class="btn btn-primary">Search</button>
         </form>
     </div>
-    
+
     {% if error %}
     <div class="error-message">
         <h3>Error</h3>
         <p>{{ error }}</p>
     </div>
     {% endif %}
-    
+
     {% if repositories %}
     <div class="results-section">
         <h2>Search Results ({{ repositories|length }})</h2>
-        
+
         {% if rate_limit %}
         <div class="rate-limit-info">
             <p>API Rate Limit: {{ rate_limit.remaining }} / {{ rate_limit.limit }} remaining</p>
         </div>
         {% endif %}
-        
+
         <div class="repository-list">
             {% for repo in repositories %}
             <div class="repository-card">
@@ -74,15 +76,15 @@
                         {{ repo.full_name }}
                     </a>
                 </h3>
-                
+
                 <p class="description">{{ repo.description|default:"No description" }}</p>
-                
+
                 <div class="repo-stats">
                     <span class="stat">⭐ {{ repo.stargazers_count }}</span>
                     <span class="stat">🍴 {{ repo.forks_count }}</span>
                     <span class="stat">📝 {{ repo.language|default:"Unknown" }}</span>
                 </div>
-                
+
                 <div class="repo-actions">
                     <a href="{{ repo.html_url }}" target="_blank" class="btn btn-sm">
                         View on GitHub

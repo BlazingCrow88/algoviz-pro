@@ -4,7 +4,8 @@
 ![Django](https://img.shields.io/badge/django-5.2-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-A comprehensive web-based platform for visualizing sorting and searching algorithms, analyzing Python code complexity, and integrating with GitHub repositories.
+A comprehensive web-based platform for visualizing sorting and searching algorithms,
+analyzing Python code complexity, and integrating with GitHub repositories.
 
 **INF601 - Advanced Programming with Python**  
 **Student:** Brian Shoemaker  
@@ -106,13 +107,13 @@ algoviz-pro/
 
 ## 🎓 Algorithm Complexity Reference
 
-| Algorithm | Best Case | Average | Worst Case | Space | Stable |
-|-----------|-----------|---------|------------|-------|--------|
-| Bubble Sort | O(n) | O(n²) | O(n²) | O(1) | Yes |
-| Merge Sort | O(n log n) | O(n log n) | O(n log n) | O(n) | Yes |
-| Quick Sort | O(n log n) | O(n log n) | O(n²) | O(log n) | No |
-| Binary Search | O(1) | O(log n) | O(log n) | O(1) | N/A |
-| Linear Search | O(1) | O(n) | O(n) | O(1) | N/A |
+| Algorithm     | Best Case  | Average    | Worst Case | Space    | Stable |
+|---------------|------------|------------|------------|----------|--------|
+| Bubble Sort   | O(n)       | O(n²)      | O(n²)      | O(1)     | Yes    |
+| Merge Sort    | O(n log n) | O(n log n) | O(n log n) | O(n)     | Yes    |
+| Quick Sort    | O(n log n) | O(n log n) | O(n²)      | O(log n) | No     |
+| Binary Search | O(1)       | O(log n)   | O(log n)   | O(1)     | N/A    |
+| Linear Search | O(1)       | O(n)       | O(n)       | O(1)     | N/A    |
 
 ---
 

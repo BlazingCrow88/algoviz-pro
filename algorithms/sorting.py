@@ -342,7 +342,7 @@ class QuickSort(SortingAlgorithm):
     Quick Sort implementation with step-by-step visualization.
 
     Quick sort is a divide-and-conquer algorithm that picks a pivot element
-    and partitions the array around it, then recursively sorts the partitions.
+    and partitions the surrounding array, then recursively sorts the partitions.
 
     Algorithm Description:
         1. Choose a pivot element from the array

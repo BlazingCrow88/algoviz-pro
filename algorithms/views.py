@@ -9,7 +9,6 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError
 import json
 import time
 
@@ -22,6 +21,9 @@ ALGORITHM_MAP = {
     'merge': MergeSort,
     'quick': QuickSort,
 }
+
+# Maximum array size for visualization
+MAX_ARRAY_SIZE = 100
 
 
 def algorithm_list(request):
@@ -121,7 +123,7 @@ def execute_algorithm(request, algo_name):
                 {"array": [5,2,8,1,9], "comparing": [0,1], ...},
                 {"array": [2,5,8,1,9], "swapped": [0,1], ...},
                 ...
-            ],
+                    ]
             "algorithm": "bubble",
             "input_size": 5,
             "total_time_ms": 12.5,
@@ -152,7 +154,7 @@ def execute_algorithm(request, algo_name):
                 input_array = [int(x) for x in array_input]
             else:
                 raise ValueError("Invalid array format")
-        except (ValueError, AttributeError) as e:
+        except (ValueError, AttributeError):
             return JsonResponse({
                 'error': 'Invalid array format',
                 'details': 'Array must be comma-separated integers (e.g., "5,2,8,1,9")'
@@ -166,10 +168,9 @@ def execute_algorithm(request, algo_name):
             }, status=400)
 
         # Validate array size (prevent performance issues)
-        MAX_SIZE = 100  # Maximum array size for visualization
-        if len(input_array) > MAX_SIZE:
+        if len(input_array) > MAX_ARRAY_SIZE:
             return JsonResponse({
-                'error': f'Array too large (maximum {MAX_SIZE} elements)',
+                'error': f'Array too large (maximum {MAX_ARRAY_SIZE} elements)',
                 'details': f'You provided {len(input_array)} elements. Please use a smaller array.'
             }, status=400)
 
