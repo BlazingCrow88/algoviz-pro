@@ -113,7 +113,7 @@ class BubbleSort(SortingAlgorithm):
         Example:
             >>> sorter = BubbleSort()
             >>> for state in sorter.sort([5, 2, 8, 1, 9]):
-            ... print(state['array'])
+            ...     print(state['array'])
         """
         self.reset_stats()
         n = len(arr)
@@ -429,11 +429,22 @@ class QuickSort(SortingAlgorithm):
         """
         if low < high:
             # Partition array and get pivot index
-            pivot_index = yield from self._partition(arr, low, high)
+            # We need to consume the generator and capture the return value
+            partition_generator = self._partition(arr, low, high)
+            pivot_index = None
+
+            try:
+                # Yield all steps from partition
+                while True:
+                    yield next(partition_generator)
+            except StopIteration as e:
+                # When generator ends, capture the return value
+                pivot_index = e.value
 
             # Recursively sort elements before and after partition
-            yield from self._quick_sort_recursive(arr, low, pivot_index - 1)
-            yield from self._quick_sort_recursive(arr, pivot_index + 1, high)
+            if pivot_index is not None:
+                yield from self._quick_sort_recursive(arr, low, pivot_index - 1)
+                yield from self._quick_sort_recursive(arr, pivot_index + 1, high)
 
     def _partition(self, arr: List[int], low: int, high: int) -> Generator:
         """
