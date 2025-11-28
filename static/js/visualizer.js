@@ -96,24 +96,28 @@ class AlgorithmVisualizer {
         const algo = this.algorithmSelect.value;
         const arrayStr = this.arrayInput.value.trim();
 
-        // Validate input
-        if (!arrayStr) {
+        // Validate input - CHECK FOR EMPTY/WHITESPACE FIRST
+        if (!arrayStr || arrayStr.length === 0) {
             this.showError('Please enter an array');
             return;
         }
 
         // Parse array
         try {
-            const array = arrayStr.split(',').map(x => parseInt(x.trim()));
+            const array = arrayStr.split(',')
+                .map(x => x.trim())
+                .filter(x => x.length > 0)  // Remove empty strings
+                .map(x => parseInt(x));
+
+            // Validate array has content
+            if (array.length === 0) {
+                this.showError('Please enter valid numbers');
+                return;
+            }
 
             // Validate array elements
             if (array.some(isNaN)) {
                 this.showError('Array must contain only integers');
-                return;
-            }
-
-            if (array.length === 0) {
-                this.showError('Array cannot be empty');
                 return;
             }
 
