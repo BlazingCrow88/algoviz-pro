@@ -9,21 +9,22 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ValidationError
 import json
 import time
 
 from .models import Algorithm, ExecutionLog
 from .sorting import BubbleSort, MergeSort, QuickSort
+from .searching import BinarySearch, LinearSearch
 
 # Map algorithm names to their implementation classes
 ALGORITHM_MAP = {
     'bubble': BubbleSort,
     'merge': MergeSort,
     'quick': QuickSort,
+    'binary': BinarySearch,
+    'linear': LinearSearch,
 }
-
-# Maximum array size for visualization
-MAX_ARRAY_SIZE = 100
 
 
 def algorithm_list(request):
@@ -123,7 +124,7 @@ def execute_algorithm(request, algo_name):
                 {"array": [5,2,8,1,9], "comparing": [0,1], ...},
                 {"array": [2,5,8,1,9], "swapped": [0,1], ...},
                 ...
-                    ]
+            ],
             "algorithm": "bubble",
             "input_size": 5,
             "total_time_ms": 12.5,
@@ -154,7 +155,7 @@ def execute_algorithm(request, algo_name):
                 input_array = [int(x) for x in array_input]
             else:
                 raise ValueError("Invalid array format")
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError) as e:
             return JsonResponse({
                 'error': 'Invalid array format',
                 'details': 'Array must be comma-separated integers (e.g., "5,2,8,1,9")'
@@ -168,9 +169,10 @@ def execute_algorithm(request, algo_name):
             }, status=400)
 
         # Validate array size (prevent performance issues)
-        if len(input_array) > MAX_ARRAY_SIZE:
+        MAX_SIZE = 100  # Maximum array size for visualization
+        if len(input_array) > MAX_SIZE:
             return JsonResponse({
-                'error': f'Array too large (maximum {MAX_ARRAY_SIZE} elements)',
+                'error': f'Array too large (maximum {MAX_SIZE} elements)',
                 'details': f'You provided {len(input_array)} elements. Please use a smaller array.'
             }, status=400)
 
@@ -186,7 +188,37 @@ def execute_algorithm(request, algo_name):
         # Execute algorithm and collect all steps
         start_time = time.time()
         algo = algo_class()
-        steps = list(algo.sort(input_array))
+
+        # Check if this is a searching algorithm that needs a target
+        is_searching = algo_name.lower() in ['binary', 'linear']
+
+        if is_searching:
+            # Get target value for searching algorithms
+            if request.content_type == 'application/json':
+                target = data.get('target')
+            else:
+                target = request.POST.get('target')
+
+            if target is None:
+                return JsonResponse({
+                    'error': 'Target value required for searching algorithms',
+                    'details': 'Please provide a target value to search for'
+                }, status=400)
+
+            try:
+                target = int(target)
+            except (ValueError, TypeError):
+                return JsonResponse({
+                    'error': 'Invalid target value',
+                    'details': 'Target must be an integer'
+                }, status=400)
+
+            # Execute search
+            steps = list(algo.search(input_array, target))
+        else:
+            # Execute sorting algorithm
+            steps = list(algo.sort(input_array))
+
         execution_time_ms = (time.time() - start_time) * 1000
 
         # Get final statistics from last step
