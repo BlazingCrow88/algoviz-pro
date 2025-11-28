@@ -488,7 +488,7 @@ class QuickSort(SortingAlgorithm):
             yield {
                 'array': arr.copy(),
                 'pivot': high,
-                'comparing': j,
+                'comparing': [j, high],  # Make it an array like BubbleSort
                 'message': f'Comparing {arr[j]} with pivot {pivot}',
                 'comparisons': self.comparisons,
                 'swaps': self.swaps,
