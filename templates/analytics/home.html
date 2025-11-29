@@ -1,13 +1,12 @@
 {% extends 'base.html' %}
-
-{# noinspection CssUnknownTarget,SpellCheckingInspection #}
+{% load static %}
 
 {% block content %}
-<div class="container" style="margin-top: 100px; max-width: 800px;">
+<div class="analytics-container">
     <h1>Code Analytics</h1>
-    <p style="font-size: 1.1em; color: #666;">Analyze Python code complexity using AST (Abstract Syntax Tree)</p>
+    <p>Analyze Python code complexity using AST (Abstract Syntax Tree)</p>
 
-    <div class="feature-box">
+    <div class="analytics-feature-box">
         <h3>📊 Features</h3>
         <ul>
             <li>Cyclomatic Complexity Analysis</li>
@@ -17,8 +16,35 @@
         </ul>
     </div>
 
-    <p><strong>Coming Soon!</strong> This feature will analyze code from GitHub repositories.</p>
+    <div class="analytics-action-buttons">
+        <a href="{% url 'analytics:analyze' %}" class="btn btn-primary">✨ Analyze Code Now</a>
+        <a href="{% url 'github_integration:search' %}" class="btn btn-secondary">Search GitHub →</a>
+    </div>
 
-    <p><a href="{% url 'github_integration:search' %}" class="btn btn-primary">Search GitHub →</a></p>
+    {% if recent_analyses %}
+    <div class="analytics-recent-analyses">
+        <h3>Recent Analyses</h3>
+        <div class="analytics-analyses-list">
+            {% for analysis in recent_analyses %}
+            <div class="analytics-analysis-card">
+                <div class="analytics-analysis-header">
+                    <span class="analytics-complexity-badge {{ analysis.get_complexity_rating.lower }}">
+                        Complexity: {{ analysis.cyclomatic_complexity }}
+                    </span>
+                    <span class="analytics-date">{{ analysis.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="analytics-analysis-stats">
+                    <span>📊 {{ analysis.num_functions }} function(s)</span>
+                    <span>📝 {{ analysis.code_lines }} lines</span>
+                    <span>🔍 Maintainability: {{ analysis.maintainability_index|floatformat:0 }}</span>
+                </div>
+                <a href="{% url 'analytics:results' analysis.id %}" class="analytics-view-link">View Details →</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+<link rel="stylesheet" href="{% static 'css/analytics.css' %}">
 {% endblock %}

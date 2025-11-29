@@ -1,0 +1,577 @@
+/* ================================================================
+   ANALYTICS APP STYLES
+   Styles for code complexity analysis pages
+
+   NOTE: Uses analytics- prefix to avoid conflicts with main styles
+   ================================================================ */
+
+/* ================================================================
+   HOME PAGE STYLES
+   ================================================================ */
+
+.analytics-container {
+    max-width: 800px;
+    margin: 100px auto 50px auto;
+    padding: 20px;
+}
+
+.analytics-container h1 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.analytics-container p {
+    color: #666;
+    font-size: 1.1em;
+}
+
+.analytics-feature-box {
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+.analytics-feature-box h3 {
+    margin-top: 0;
+    color: #007bff;
+}
+
+.analytics-feature-box ul {
+    margin: 15px 0;
+    padding-left: 20px;
+}
+
+.analytics-feature-box li {
+    margin: 8px 0;
+    color: #555;
+}
+
+.analytics-action-buttons {
+    display: flex;
+    gap: 15px;
+    margin: 30px 0;
+}
+
+/* Analytics buttons - inherits from main .btn but adds specifics */
+.analytics-container .btn,
+.analyze-container .btn,
+.results-container .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: all 0.3s;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.analytics-container .btn-primary,
+.analyze-container .btn-primary,
+.results-container .btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.analytics-container .btn-primary:hover,
+.analyze-container .btn-primary:hover,
+.results-container .btn-primary:hover {
+    background: #0056b3;
+    transform: translateY(-2px);
+}
+
+.analytics-container .btn-secondary,
+.analyze-container .btn-secondary,
+.results-container .btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.analytics-container .btn-secondary:hover,
+.analyze-container .btn-secondary:hover,
+.results-container .btn-secondary:hover {
+    background: #5a6268;
+}
+
+.analytics-recent-analyses {
+    margin-top: 40px;
+}
+
+.analytics-recent-analyses h3 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.analytics-analyses-list {
+    display: grid;
+    gap: 15px;
+}
+
+.analytics-analysis-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    transition: box-shadow 0.3s;
+}
+
+.analytics-analysis-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.analytics-analysis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.analytics-complexity-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.analytics-complexity-badge.low {
+    background: #d4edda;
+    color: #155724;
+}
+
+.analytics-complexity-badge.moderate {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.analytics-complexity-badge.high {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.analytics-date {
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+.analytics-analysis-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.analytics-view-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.analytics-view-link:hover {
+    text-decoration: underline;
+}
+
+
+/* ================================================================
+   ANALYZE PAGE STYLES
+   ================================================================ */
+
+.analyze-container {
+    max-width: 1000px;
+    margin: 100px auto 50px auto;
+    padding: 20px;
+}
+
+.analyze-container h1 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.analyze-container p {
+    color: #666;
+    font-size: 1.1em;
+    margin-bottom: 30px;
+}
+
+.analytics-error-message {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.analytics-analysis-form {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.analytics-form-group {
+    margin-bottom: 25px;
+}
+
+.analytics-form-group label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.analytics-form-group textarea {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+.analytics-form-group textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.analytics-help-text {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.analytics-form-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.analytics-examples-section {
+    margin-top: 40px;
+}
+
+.analytics-examples-section h3 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.analytics-examples-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.analytics-example-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+}
+
+.analytics-example-card h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #495057;
+}
+
+.analytics-example-card pre {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+    border: 1px solid #dee2e6;
+}
+
+.analytics-copy-btn {
+    margin-top: 10px;
+    padding: 6px 16px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background 0.3s;
+}
+
+.analytics-copy-btn:hover {
+    background: #0056b3;
+}
+
+
+/* ================================================================
+   RESULTS PAGE STYLES
+   ================================================================ */
+
+.results-container {
+    max-width: 1400px;
+    margin: 100px auto 50px auto;
+    padding: 20px;
+}
+
+.analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.analytics-header h1 {
+    color: #333;
+    margin: 0;
+}
+
+.analytics-header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Metrics Grid */
+.analytics-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.analytics-metric-card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.analytics-metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.analytics-metric-card.low {
+    border-top: 4px solid #28a745;
+}
+
+.analytics-metric-card.moderate {
+    border-top: 4px solid #ffc107;
+}
+
+.analytics-metric-card.high {
+    border-top: 4px solid #dc3545;
+}
+
+.analytics-metric-icon {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.analytics-metric-value {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.analytics-metric-label {
+    color: #666;
+    font-size: 0.95em;
+    margin-bottom: 5px;
+}
+
+.analytics-metric-rating {
+    font-weight: 600;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.analytics-metric-card.low .analytics-metric-rating {
+    color: #28a745;
+}
+
+.analytics-metric-card.moderate .analytics-metric-rating {
+    color: #ffc107;
+}
+
+.analytics-metric-card.high .analytics-metric-rating {
+    color: #dc3545;
+}
+
+.analytics-metric-warning {
+    color: #dc3545;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-top: 5px;
+}
+
+/* Recommendations */
+.analytics-recommendations-section {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 40px;
+}
+
+.analytics-recommendations-section h2 {
+    margin-top: 0;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.analytics-recommendations-list {
+    display: grid;
+    gap: 15px;
+}
+
+.analytics-recommendation-card {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+    border-radius: 6px;
+    align-items: flex-start;
+}
+
+.analytics-recommendation-icon {
+    font-size: 1.5em;
+    flex-shrink: 0;
+}
+
+.analytics-recommendation-text {
+    color: #495057;
+    line-height: 1.6;
+}
+
+/* Functions Table */
+.analytics-functions-section {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 40px;
+}
+
+.analytics-functions-section h2 {
+    margin-top: 0;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.analytics-functions-table {
+    overflow-x: auto;
+}
+
+.analytics-functions-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.analytics-functions-table thead {
+    background: #f8f9fa;
+}
+
+.analytics-functions-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.analytics-functions-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.analytics-func-name {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #007bff;
+}
+
+.analytics-complexity-cell {
+    text-align: center;
+}
+
+.analytics-rating {
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.analytics-rating.good {
+    color: #28a745;
+}
+
+.analytics-rating.moderate {
+    color: #ffc107;
+}
+
+.analytics-rating.high {
+    color: #dc3545;
+}
+
+.analytics-functions-table tr.high-complexity {
+    background: #fff5f5;
+}
+
+.analytics-functions-table tr.medium-complexity {
+    background: #fffef0;
+}
+
+.analytics-no-functions {
+    background: #e9ecef;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.analytics-no-functions p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 1.1em;
+}
+
+/* Source Code */
+.analytics-source-section {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.analytics-source-section h2 {
+    margin-top: 0;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.analytics-source-preview {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+.analytics-source-preview pre {
+    margin: 0;
+    padding: 20px;
+}
+
+.analytics-source-preview code {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+}

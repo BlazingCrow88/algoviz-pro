@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="results-container">
+    <div class="analytics-header">
+        <h1>Code Analysis Results</h1>
+        <div class="analytics-header-actions">
+            <a href="{% url 'analytics:analyze' %}" class="btn btn-primary">📝 Analyze New Code</a>
+            <a href="{% url 'analytics:home' %}" class="btn btn-secondary">← Back</a>
+        </div>
+    </div>
+
+    <!-- Overall Metrics -->
+    <div class="analytics-metrics-grid">
+        <div class="analytics-metric-card {{ complexity_rating.lower }}">
+            <div class="analytics-metric-icon">🔄</div>
+            <div class="analytics-metric-value">{{ analysis.cyclomatic_complexity }}</div>
+            <div class="analytics-metric-label">Cyclomatic Complexity</div>
+            <div class="analytics-metric-rating">{{ complexity_rating }}</div>
+        </div>
+
+        <div class="analytics-metric-card">
+            <div class="analytics-metric-icon">📊</div>
+            <div class="analytics-metric-value">{{ analysis.maintainability_index|floatformat:0 }}</div>
+            <div class="analytics-metric-label">Maintainability Index</div>
+            <div class="analytics-metric-rating">{{ maintainability_rating }}</div>
+        </div>
+
+        <div class="analytics-metric-card">
+            <div class="analytics-metric-icon">📝</div>
+            <div class="analytics-metric-value">{{ analysis.code_lines }}</div>
+            <div class="analytics-metric-label">Lines of Code</div>
+        </div>
+
+        <div class="analytics-metric-card">
+            <div class="analytics-metric-icon">🔧</div>
+            <div class="analytics-metric-value">{{ analysis.num_functions }}</div>
+            <div class="analytics-metric-label">Functions</div>
+        </div>
+
+        <div class="analytics-metric-card">
+            <div class="analytics-metric-icon">📦</div>
+            <div class="analytics-metric-value">{{ analysis.num_classes }}</div>
+            <div class="analytics-metric-label">Classes</div>
+        </div>
+
+        <div class="analytics-metric-card {% if analysis.max_nesting_depth > 3 %}high{% elif analysis.max_nesting_depth > 2 %}moderate{% else %}low{% endif %}">
+            <div class="analytics-metric-icon">🔍</div>
+            <div class="analytics-metric-value">{{ analysis.max_nesting_depth }}</div>
+            <div class="analytics-metric-label">Max Nesting Depth</div>
+            {% if analysis.max_nesting_depth > 3 %}
+            <div class="analytics-metric-warning">⚠️ High nesting</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    {% if recommendations %}
+    <div class="analytics-recommendations-section">
+        <h2>💡 Recommendations</h2>
+        <div class="analytics-recommendations-list">
+            {% for recommendation in recommendations %}
+            <div class="analytics-recommendation-card">
+                <div class="analytics-recommendation-icon">
+                    {% if 'high complexity' in recommendation.lower or 'nesting' in recommendation.lower %}
+                        ⚠️
+                    {% elif 'good' in recommendation.lower or 'excellent' in recommendation.lower %}
+                        ✅
+                    {% else %}
+                        💡
+                    {% endif %}
+                </div>
+                <div class="analytics-recommendation-text">{{ recommendation }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Function Metrics -->
+    {% if function_metrics %}
+    <div class="analytics-functions-section">
+        <h2>🔧 Function Details</h2>
+        <div class="analytics-functions-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Function Name</th>
+                        <th>Line #</th>
+                        <th>Lines</th>
+                        <th>Parameters</th>
+                        <th>Complexity</th>
+                        <th>Max Depth</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for func in function_metrics %}
+                    <tr class="{% if func.complexity > 10 %}high-complexity{% elif func.complexity > 5 %}medium-complexity{% endif %}">
+                        <td class="analytics-func-name">{{ func.name }}</td>
+                        <td>{{ func.line_number }}</td>
+                        <td>{{ func.num_lines }}</td>
+                        <td>{{ func.num_params }}</td>
+                        <td class="analytics-complexity-cell">
+                            <span class="analytics-complexity-badge {% if func.complexity > 10 %}high{% elif func.complexity > 5 %}moderate{% else %}low{% endif %}">
+                                {{ func.complexity }}
+                            </span>
+                        </td>
+                        <td>{{ func.max_depth }}</td>
+                        <td>
+                            {% if func.complexity <= 5 %}
+                                <span class="analytics-rating good">✅ Good</span>
+                            {% elif func.complexity <= 10 %}
+                                <span class="analytics-rating moderate">⚠️ Moderate</span>
+                            {% else %}
+                                <span class="analytics-rating high">❌ High</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="analytics-no-functions">
+        <p>ℹ️ No functions found in the analyzed code.</p>
+    </div>
+    {% endif %}
+
+    <!-- Source Code Preview -->
+    <div class="analytics-source-section">
+        <h2>📄 Analyzed Code</h2>
+        <div class="analytics-source-preview">
+            <pre><code>{{ analysis.source_code }}</code></pre>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'css/analytics.css' %}">
+{% endblock %}
