@@ -3,7 +3,7 @@ Views for the github_integration app.
 
 Handles GitHub repository search, viewing, and code fetching.
 """
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -128,10 +128,9 @@ def repository_detail(request, owner, repo):
 
 
 @require_http_methods(["POST"])
-@csrf_exempt
 def fetch_code(request):
     """
-    Fetch code file from GitHub and store in database.
+    Fetch code file from GitHub, store in database, and redirect to view page.
 
     POST parameters:
         - owner: Repository owner
@@ -139,7 +138,7 @@ def fetch_code(request):
         - path: File path within repository
 
     Returns:
-        JSON response with file content and metadata
+        Redirect to code view page or back to repository on error
     """
     try:
         # Parse request data
@@ -153,9 +152,8 @@ def fetch_code(request):
         path = data.get('path')
 
         if not all([owner, repo, path]):
-            return JsonResponse({
-                'error': 'Missing required parameters: owner, repo, path'
-            }, status=400)
+            # Redirect back to search if missing parameters
+            return redirect('github_integration:search')
 
         # Get or create repository
         full_name = f"{owner}/{repo}"
@@ -185,34 +183,21 @@ def fetch_code(request):
 
         repository.update_last_fetched()
 
-        return JsonResponse({
-            'success': True,
-            'file': {
-                'id': code_file.id,
-                'path': code_file.path,
-                'name': code_file.name,
-                'content': code_file.content,
-                'size': code_file.size,
-                'line_count': code_file.get_line_count(),
-            },
-            'created': created,
-        })
+        # *** THIS IS THE KEY CHANGE ***
+        # Redirect to the view_code page instead of returning JSON
+        return redirect('github_integration:view_code', file_id=code_file.id)
 
     except RepositoryNotFoundError:
-        return JsonResponse({
-            'error': 'File not found in repository'
-        }, status=404)
+        logger.error(f"File not found: {owner}/{repo}/{path}")
+        return redirect('github_integration:repo_detail', owner=owner, repo=repo)
 
     except GitHubAPIError as e:
-        return JsonResponse({
-            'error': f'GitHub API error: {str(e)}'
-        }, status=500)
+        logger.error(f'GitHub API error: {e}')
+        return redirect('github_integration:repo_detail', owner=owner, repo=repo)
 
     except Exception as e:
         logger.error(f"Error fetching code: {e}")
-        return JsonResponse({
-            'error': f'An error occurred: {str(e)}'
-        }, status=500)
+        return redirect('github_integration:search')
 
 
 def view_code(request, file_id):
