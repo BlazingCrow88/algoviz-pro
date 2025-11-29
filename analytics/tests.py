@@ -1,5 +1,5 @@
 from django.test import TestCase
-from .complexity_analyzer import ComplexityAnalyzer
+from analytics.complexity_analyzer import ComplexityAnalyzer
 
 
 class ComplexityAnalyzerTests(TestCase):

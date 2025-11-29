@@ -3,7 +3,7 @@ Tests for GitHub API integration.
 """
 from django.test import TestCase
 from unittest.mock import Mock, patch
-from .api_client import GitHubAPIClient, GitHubAPIError
+from github_integration.api_client import GitHubAPIClient, GitHubAPIError
 
 
 class GitHubAPIClientTests(TestCase):

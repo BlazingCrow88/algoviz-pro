@@ -4,8 +4,8 @@ Unit tests for algorithm implementations.
 Tests sorting and searching algorithms for correctness and edge cases.
 """
 from django.test import TestCase
-from .sorting import BubbleSort, MergeSort, QuickSort
-from .searching import BinarySearch, LinearSearch
+from algorithms.sorting import BubbleSort, MergeSort, QuickSort
+from algorithms.searching import BinarySearch, LinearSearch
 
 
 class SortingAlgorithmTests(TestCase):
