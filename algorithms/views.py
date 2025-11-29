@@ -213,6 +213,10 @@ def execute_algorithm(request, algo_name):
                     'details': 'Target must be an integer'
                 }, status=400)
 
+            # Binary search requires a sorted array
+            if algo_name.lower() == 'binary':
+                input_array.sort()
+
             # Execute search
             steps = list(algo.search(input_array, target))
         else:
