@@ -2,6 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Django](https://img.shields.io/badge/django-5.2-green.svg)
+![Tests](https://img.shields.io/badge/tests-23%20passed-success)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 A comprehensive web-based platform for visualizing sorting and searching algorithms,
@@ -93,14 +94,14 @@ Visit http://127.0.0.1:8000/ in your browser.
 ## 📁 Project Structure
 ```
 algoviz-pro/
-├── algorithms/ # Algorithm implementations
-├── visualization/ # Web interface
-├── github_integration/ # GitHub API client
-├── analytics/ # Code complexity analyzer
-├── templates/ # HTML templates
-├── static/ # CSS, JavaScript, images
-├── docs/ # Documentation
-└── manage.py # Django management script
+├── algorithms/             # Algorithm implementations
+├── visualization/          # Web interface
+├── github_integration/     # GitHub API client
+├── analytics/              # Code complexity analyzer
+├── templates/              # HTML templates
+├── static/                 # CSS, JavaScript, images
+├── docs/                   # Documentation
+└── manage.py               # Django management script
 ```
 
 ---
@@ -144,10 +145,33 @@ algoviz-pro/
 
 ---
 
-## 🧪 Running Tests
+## 🧪 Testing
+
+I wrote 23 automated tests to make sure everything actually works. They cover the core algorithms, edge cases, and the GitHub integration.
+
+### Run the test suite:
 ```bash
-python manage.py test
+python manage.py test algorithms.tests analytics.tests github_integration.tests
 ```
+
+### What gets tested:
+
+**Algorithm Tests (17 tests)**
+- Sorting correctness - making sure Bubble, Merge, and Quick Sort actually sort things
+- Searching accuracy - Binary and Linear Search find the right values
+- Edge cases - empty arrays, single elements, duplicates, large datasets
+- Performance tracking - verifying comparison counts work
+
+**Analytics Tests (3 tests)**
+- Simple function analysis
+- Complex functions with multiple branches
+- Syntax error handling (doesn't crash on bad code)
+
+**GitHub Integration Tests (3 tests)**
+- Client initialization and configuration
+- Session setup with proper headers
+
+All 23 tests pass consistently. I ran them a bunch of times to make sure they're solid.
 
 ---
 
@@ -179,7 +203,7 @@ python manage.py test
 
 ---
 
-## 📝 Development
+## 📝 Development Notes
 
 ### Adding a New Algorithm
 
