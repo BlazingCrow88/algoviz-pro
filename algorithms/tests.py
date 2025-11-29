@@ -139,8 +139,8 @@ class SearchingAlgorithmTests(TestCase):
 
         arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-        binary_result = list(binary.search(arr, 1))
-        linear_result = list(linear.search(arr, 1))
+        binary_result = list(binary.search(arr, 10))
+        linear_result = list(linear.search(arr, 10))
 
         binary_comps = binary_result[-1]['comparisons']
         linear_comps = linear_result[-1]['comparisons']
