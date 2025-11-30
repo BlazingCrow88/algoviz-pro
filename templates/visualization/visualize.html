@@ -5,7 +5,7 @@
 <div class="viz-container">
     <h1>Algorithm Visualization</h1>
 
-    <!-- Error Display Area -->
+    {# Error Display Area - shown when user input is invalid or algorithm execution fails #}
     <div id="error-area" style="display: none; background: #fee; border: 2px solid #c00; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
         <strong style="color: #c00;">Error:</strong>
         <span id="error-message"></span>
@@ -28,7 +28,7 @@
             <input type="text" id="array-input" value="5,2,8,1,9,3,7,4,6" />
         </div>
 
-        <!-- Target input for searching algorithms -->
+        {# Target input for searching algorithms - only shown when binary or linear search is selected #}
         <div class="input-group" id="target-group" style="display: none;">
             <label for="target-input">Target Value:</label>
             <input type="text" id="target-input" value="7" />
@@ -193,6 +193,6 @@
     }
 </style>
 
-<!-- Load external JavaScript file -->
+{# Load external JavaScript file for visualization logic #}
 <script src="{% static 'js/visualizer.js' %}"></script>
 {% endblock %}
