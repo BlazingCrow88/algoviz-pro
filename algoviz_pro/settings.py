@@ -117,6 +117,10 @@ STATIC_URL = 'static/'
 # Additional locations for static files
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+# Directory where collectstatic will gather all static files for deployment
+# This is where Django collects all static files from all apps into one location
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
