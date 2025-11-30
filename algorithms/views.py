@@ -14,12 +14,15 @@ import time
 
 from .models import Algorithm, ExecutionLog
 from .sorting import BubbleSort, MergeSort, QuickSort
+from .searching import BinarySearch, LinearSearch
 
 # Map algorithm names to their implementation classes
 ALGORITHM_MAP = {
     'bubble': BubbleSort,
     'merge': MergeSort,
     'quick': QuickSort,
+    'binary': BinarySearch,
+    'linear': LinearSearch,
 }
 
 # Maximum array size for visualization
@@ -89,13 +92,12 @@ def execute_algorithm(request, algo_name):
     """
     Execute algorithm with given input and return steps as JSON.
 
-    This view handles POST requests containing an array to sort. It executes
-    the requested sorting algorithm and returns all intermediate steps for
-    visualization.
+    This view handles POST requests containing an array to sort or search. It executes
+    the requested algorithm and returns all intermediate steps for visualization.
 
     Args:
-        request: HTTP POST request with 'array' parameter
-        algo_name: Name of algorithm to execute ('bubble', 'merge', or 'quick')
+        request: HTTP POST request with 'array' parameter (and 'target' for searching)
+        algo_name: Name of algorithm to execute ('bubble', 'merge', 'quick', 'binary', 'linear')
 
     Returns:
         JsonResponse: JSON containing:
@@ -123,7 +125,7 @@ def execute_algorithm(request, algo_name):
                 {"array": [5,2,8,1,9], "comparing": [0,1], ...},
                 {"array": [2,5,8,1,9], "swapped": [0,1], ...},
                 ...
-                    ]
+            ],
             "algorithm": "bubble",
             "input_size": 5,
             "total_time_ms": 12.5,
@@ -136,8 +138,10 @@ def execute_algorithm(request, algo_name):
         if request.content_type == 'application/json':
             data = json.loads(request.body)
             array_input = data.get('array', '')
+            target_input = data.get('target', '')
         else:
             array_input = request.POST.get('array', '')
+            target_input = request.POST.get('target', '')
 
         # Validate and parse array
         if not array_input:
@@ -183,10 +187,34 @@ def execute_algorithm(request, algo_name):
                 'details': f'Available algorithms: {available}'
             }, status=400)
 
+        # Check if this is a searching algorithm
+        is_searching = algo_name.lower() in ['binary', 'linear']
+
+        if is_searching:
+            # Validate target input for searching algorithms
+            if not target_input and target_input != 0:
+                return JsonResponse({
+                    'error': 'Target value is required for searching algorithms',
+                    'details': 'Please provide a target value to search for'
+                }, status=400)
+
+            try:
+                target = int(target_input)
+            except (ValueError, TypeError):
+                return JsonResponse({
+                    'error': 'Invalid target value',
+                    'details': 'Target must be an integer'
+                }, status=400)
+
         # Execute algorithm and collect all steps
         start_time = time.time()
         algo = algo_class()
-        steps = list(algo.sort(input_array))
+
+        if is_searching:
+            steps = list(algo.search(input_array, target))
+        else:
+            steps = list(algo.sort(input_array))
+
         execution_time_ms = (time.time() - start_time) * 1000
 
         # Get final statistics from last step
