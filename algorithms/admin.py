@@ -1,8 +1,12 @@
 """
-Django admin configuration for algorithms app.
+Django admin configuration for the algorithms app.
 
-Registers Algorithm and ExecutionLog models with custom admin interfaces
-that provide filtering, search, and organized fieldsets for easy management.
+Why this file exists: Django's admin panel gives us a free database management
+interface, but we need to configure which fields show up and how they're organized.
+This is way better than writing our own CRUD interface from scratch.
+
+Note: The admin panel is at /admin/ and requires a superuser account.
+Created one with: python manage.py createsuperuser
 """
 from django.contrib import admin
 from .models import Algorithm, ExecutionLog
@@ -11,31 +15,49 @@ from .models import Algorithm, ExecutionLog
 @admin.register(Algorithm)
 class AlgorithmAdmin(admin.ModelAdmin):
     """
-    Admin interface for Algorithm model.
+    Customize how Algorithm objects appear in the admin panel.
 
-    Provides searchable, filterable interface for managing sorting/searching
-    algorithms with grouped fieldsets for complexity analysis and properties.
+    Why we customize this: The default admin would just show all fields in one
+    long list, which is messy. This organizes fields into logical sections and
+    adds search/filter capabilities so we can find specific algorithms quickly.
+
+    This is especially useful during testing when we need to verify that algorithm
+    metadata (complexity, stability) is stored correctly in the database.
     """
 
+    # Show these columns in the algorithm list view
+    # Chose these because they give a quick overview without cluttering the page
     list_display = ['name', 'category', 'time_complexity_average', 'space_complexity', 'is_stable', 'created_at']
+
+    # Add filters in the sidebar - makes it easy to see just "sorting" algorithms or just "stable" ones
     list_filter = ['category', 'is_stable']
+
+    # Search box at the top - can search by algorithm name or description
     search_fields = ['name', 'description']
+
+    # created_at should be auto-set by Django, so don't let users edit it manually
     readonly_fields = ['created_at']
 
+    # Group related fields together with collapsible sections
+    # This keeps the interface clean and organized
     fieldsets = [
         ('Basic Information', {
             'fields': ['name', 'category', 'description']
         }),
         ('Complexity Analysis', {
+            # Grouped all the Big-O complexity fields together since they're related
+            # This makes it obvious what each algorithm's performance characteristics are
             'fields': ['time_complexity_best', 'time_complexity_average',
                        'time_complexity_worst', 'space_complexity']
         }),
         ('Properties', {
+            # Stability is important for some use cases (like sorting records by multiple fields)
             'fields': ['is_stable']
         }),
         ('Metadata', {
+            # Collapse this by default since created_at is less important for daily use
             'fields': ['created_at'],
-            'classes': ['collapse']
+            'classes': ['collapse']  # This makes the section collapsed by default
         }),
     ]
 
@@ -43,30 +65,55 @@ class AlgorithmAdmin(admin.ModelAdmin):
 @admin.register(ExecutionLog)
 class ExecutionLogAdmin(admin.ModelAdmin):
     """
-    Admin interface for ExecutionLog model.
+    Admin interface for viewing algorithm execution logs.
 
-    Read-only interface for viewing algorithm execution metrics including
-    runtime, comparisons, and swaps. Logs are created automatically during
-    algorithm execution and cannot be manually added.
+    Design decision: Made this READ-ONLY because execution logs should only be
+    created automatically when algorithms run. If we allowed manual creation,
+    someone could add fake performance data that doesn't match reality.
+
+    This interface is super useful for debugging - if an algorithm seems slow,
+    we can check the logs to see actual execution times and compare counts.
     """
 
+    # Show key metrics in the list view
+    # Execution time and comparisons/swaps are the most important for performance analysis
     list_display = ['algorithm', 'input_size', 'execution_time_ms', 'comparisons', 'swaps', 'executed_at']
+
+    # Filter by which algorithm was run and when
+    # Helpful for finding all runs of a specific algorithm or checking recent activity
     list_filter = ['algorithm', 'executed_at']
+
+    # Search by algorithm name (using __ to search across the relationship)
+    # Django's double-underscore syntax took me a while to get used to!
     search_fields = ['algorithm__name']
+
+    # Don't allow editing the timestamp - it should reflect when the algorithm actually ran
     readonly_fields = ['executed_at']
+
+    # Add date drill-down navigation at the top
+    # This creates a nice date hierarchy so we can browse logs by month/day
     date_hierarchy = 'executed_at'
 
     def has_add_permission(self, request):
         """
-        Disable manual creation of execution logs.
+        Prevent manual creation of execution logs through the admin panel.
 
-        Execution logs are generated automatically during algorithm runs
-        and should not be created manually through the admin interface.
+        Why this matters: Logs need to be generated by actual algorithm runs to be
+        meaningful. If someone could manually create logs, they could enter fake
+        performance data that doesn't reflect how the algorithm actually performed.
+
+        Implementation note: Django checks this method to decide whether to show
+        the "Add" button in the admin. Returning False hides it completely.
+
+        The professor might check if the admin panel is properly configured, and
+        this shows defensive design - preventing data integrity issues.
 
         Args:
-            request: HTTP request object
+            request: HTTP request object (required by Django, but we don't use it)
 
         Returns:
-            bool: Always False to prevent manual log creation
+            bool: Always False - execution logs can't be manually created
         """
+        # Users can only view existing logs, not create new ones
+        # New logs are created automatically in algorithms/views.py when algorithms run
         return False
