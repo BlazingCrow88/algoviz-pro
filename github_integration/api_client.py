@@ -62,7 +62,7 @@ class GitHubAPIClient:
         >>> client = GitHubAPIClient()
         >>> repos = client.search_repositories('django', max_results=10)
         >>> for repo in repos:
-        ... print(repo['name'])
+        ...     print(repo['name'])
     """
 
     def __init__(
@@ -121,6 +121,7 @@ class GitHubAPIClient:
             GitHubAPIError: For other API errors
         """
         url = f"{self.base_url}{endpoint}"
+        cache_key = None
 
         # Check cache first
         if use_cache:
@@ -163,7 +164,7 @@ class GitHubAPIClient:
                 data = response.json()
 
                 # Cache successful response
-                if use_cache:
+                if use_cache and cache_key:
                     cache.set(cache_key, data, self.cache_timeout)
 
                 return data
@@ -186,6 +187,9 @@ class GitHubAPIClient:
 
             except requests.exceptions.RequestException as e:
                 raise GitHubAPIError(f"Request failed: {str(e)}")
+
+        # This should never be reached due to exceptions, but added for type safety
+        raise GitHubAPIError("Request failed: Maximum retries exceeded")
 
     def get_rate_limit(self) -> Dict[str, Any]:
         """
@@ -245,7 +249,7 @@ class GitHubAPIClient:
             >>> client = GitHubAPIClient()
             >>> repos = client.search_repositories('django', max_results=5)
             >>> for repo in repos:
-            ... print(f"{repo['full_name']}: {repo['stargazers_count']} stars")
+            ...     print(f"{repo['full_name']}: {repo['stargazers_count']} stars")
         """
         # Build search query
         search_query = query
@@ -265,21 +269,21 @@ class GitHubAPIClient:
 
             # Extract relevant fields
             results = []
-            for repo in repositories[:max_results]:
+            for repository in repositories[:max_results]:
                 results.append({
-                    'name': repo['name'],
-                    'full_name': repo['full_name'],
-                    'description': repo.get('description', 'No description'),
-                    'html_url': repo['html_url'],
-                    'stargazers_count': repo.get('stargazers_count', 0),
-                    'forks_count': repo.get('forks_count', 0),
-                    'language': repo.get('language', 'Unknown'),
+                    'name': repository['name'],
+                    'full_name': repository['full_name'],
+                    'description': repository.get('description', 'No description'),
+                    'html_url': repository['html_url'],
+                    'stargazers_count': repository.get('stargazers_count', 0),
+                    'forks_count': repository.get('forks_count', 0),
+                    'language': repository.get('language', 'Unknown'),
                     'owner': {
-                        'login': repo['owner']['login'],
-                        'avatar_url': repo['owner']['avatar_url'],
+                        'login': repository['owner']['login'],
+                        'avatar_url': repository['owner']['avatar_url'],
                     },
-                    'created_at': repo.get('created_at'),
-                    'updated_at': repo.get('updated_at'),
+                    'created_at': repository.get('created_at'),
+                    'updated_at': repository.get('updated_at'),
                 })
 
             return results
@@ -288,13 +292,13 @@ class GitHubAPIClient:
             logger.error(f"Repository search failed: {e}")
             raise
 
-    def get_repository(self, owner: str, repo: str) -> Dict[str, Any]:
+    def get_repository(self, owner: str, repo_name: str) -> Dict[str, Any]:
         """
         Get detailed information about a specific repository.
 
         Args:
             owner: Repository owner (username or organization)
-            repo: Repository name
+            repo_name: Repository name
 
         Returns:
             dict: Repository information
@@ -304,16 +308,16 @@ class GitHubAPIClient:
 
         Example:
             >>> client = GitHubAPIClient()
-            >>> repo = client.get_repository('django', 'django')
-            >>> print(repo['description'])
+            >>> repository = client.get_repository('django', 'django')
+            >>> print(repository['description'])
         """
-        endpoint = f'/repos/{owner}/{repo}'
+        endpoint = f'/repos/{owner}/{repo_name}'
         return self._make_request(endpoint)
 
     def get_repository_contents(
             self,
             owner: str,
-            repo: str,
+            repo_name: str,
             path: str = ''
     ) -> List[Dict[str, Any]]:
         """
@@ -321,7 +325,7 @@ class GitHubAPIClient:
 
         Args:
             owner: Repository owner
-            repo: Repository name
+            repo_name: Repository name
             path: Path within repository (empty for root)
 
         Returns:
@@ -331,15 +335,21 @@ class GitHubAPIClient:
             >>> client = GitHubAPIClient()
             >>> contents = client.get_repository_contents('django', 'django', 'django')
             >>> for item in contents:
-            ... print(f"{item['name']} ({item['type']})")
+            ...     print(f"{item['name']} ({item['type']})")
         """
-        endpoint = f'/repos/{owner}/{repo}/contents/{path}'
-        return self._make_request(endpoint)
+        endpoint = f'/repos/{owner}/{repo_name}/contents/{path}'
+        result = self._make_request(endpoint)
+
+        # GitHub API returns a list for directories, dict for files
+        if isinstance(result, list):
+            return result
+        else:
+            return [result]
 
     def get_file_content(
             self,
             owner: str,
-            repo: str,
+            repo_name: str,
             path: str,
             decode: bool = True
     ) -> str:
@@ -348,7 +358,7 @@ class GitHubAPIClient:
 
         Args:
             owner: Repository owner
-            repo: Repository name
+            repo_name: Repository name
             path: File path within repository
             decode: Whether to decode base64 content
 
@@ -357,16 +367,16 @@ class GitHubAPIClient:
 
         Example:
             >>> client = GitHubAPIClient()
-            >>> content = client.get_file_content('django', 'django', 'setup.py')
-            >>> print(content[:100])
+            >>> file_content = client.get_file_content('django', 'django', 'setup.py')
+            >>> print(file_content[:100])
         """
-        endpoint = f'/repos/{owner}/{repo}/contents/{path}'
+        endpoint = f'/repos/{owner}/{repo_name}/contents/{path}'
         data = self._make_request(endpoint)
 
         if decode and data.get('encoding') == 'base64':
             import base64
-            content = base64.b64decode(data['content']).decode('utf-8')
-            return content
+            decoded_content = base64.b64decode(data['content']).decode('utf-8')
+            return decoded_content
 
         return data.get('content', '')
 
@@ -374,7 +384,7 @@ class GitHubAPIClient:
             self,
             query: str,
             owner: str = None,
-            repo: str = None,
+            repo_name: str = None,
             extension: str = 'py',
             max_results: int = 10
     ) -> List[Dict[str, Any]]:
@@ -384,7 +394,7 @@ class GitHubAPIClient:
         Args:
             query: Code search query
             owner: Optional repository owner filter
-            repo: Optional repository name filter
+            repo_name: Optional repository name filter
             extension: File extension filter (default: 'py')
             max_results: Maximum results to return
 
@@ -395,14 +405,14 @@ class GitHubAPIClient:
             >>> client = GitHubAPIClient()
             >>> results = client.search_code('def bubble_sort', extension='py')
             >>> for result in results:
-            ... print(result['path'])
+            ...     print(result['path'])
         """
         # Build search query
         search_query = query
         if extension:
             search_query += f" extension:{extension}"
-        if owner and repo:
-            search_query += f" repo:{owner}/{repo}"
+        if owner and repo_name:
+            search_query += f" repo:{owner}/{repo_name}"
 
         params = {
             'q': search_query,
@@ -419,7 +429,7 @@ class GitHubAPIClient:
     def get_python_files(
             self,
             owner: str,
-            repo: str,
+            repo_name: str,
             path: str = '',
             max_files: int = 50
     ) -> List[Dict[str, Any]]:
@@ -428,7 +438,7 @@ class GitHubAPIClient:
 
         Args:
             owner: Repository owner
-            repo: Repository name
+            repo_name: Repository name
             path: Starting path (default: root)
             max_files: Maximum number of files to return
 
@@ -439,7 +449,7 @@ class GitHubAPIClient:
             >>> client = GitHubAPIClient()
             >>> files = client.get_python_files('django', 'django')
             >>> for file in files[:5]:
-            ... print(file['path'])
+            ...     print(file['path'])
         """
         python_files = []
 
@@ -448,7 +458,7 @@ class GitHubAPIClient:
                 return
 
             try:
-                contents = self.get_repository_contents(owner, repo, current_path)
+                contents = self.get_repository_contents(owner, repo_name, current_path)
 
                 for item in contents:
                     if len(python_files) >= max_files:
