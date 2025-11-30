@@ -2,10 +2,23 @@
 
 {# noinspection CssUnknownTarget,SpellCheckingInspection #}
 
-{% block title %}{{ repository.full_name }} - Repository Details{% endblock %}
+{% block title %}{% if error %}Error{% else %}{{ repository.full_name }} - Repository Details{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container" style="max-width: 1200px; margin: 100px auto 50px auto; padding: 20px;">
+
+    {% if error %}
+    <!-- ERROR STATE -->
+    <div class="error-container" style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
+        <h2 style="color: #991b1b; margin-top: 0;">❌ Error</h2>
+        <p style="color: #7f1d1d; font-size: 1.1em; margin: 15px 0;">{{ error }}</p>
+        <div style="margin-top: 25px;">
+            <a href="{% url 'github_integration:search' %}" class="btn" style="display: inline-block; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to Search</a>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- NORMAL REPOSITORY VIEW -->
     <div class="repo-header" style="border-bottom: 2px solid #007bff; padding-bottom: 20px; margin-bottom: 30px;">
         <h1>{{ repository.name }}</h1>
         <p style="color: #666; font-size: 1.1em;">{{ repository.owner }} / {{ repository.name }}</p>
@@ -26,7 +39,7 @@
 
         <div class="stat-box" style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e9ecef;">
             <div style="font-size: 2em; color: #28a745;">📝</div>
-            <div style="font-size: 1.5em; font-weight: bold; margin: 10px 0;">{{ repository.language }}</div>
+            <div style="font-size: 1.5em; font-weight: bold; margin: 10px 0;">{{ repository.language|default:"N/A" }}</div>
             <div style="color: #666;">Language</div>
         </div>
     </div>
@@ -67,6 +80,7 @@
         <a href="{% url 'github_integration:search' %}" class="btn" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to Search</a>
         <a href="{{ repository.url }}" target="_blank" class="btn" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">View on GitHub →</a>
     </div>
+    {% endif %}
 </div>
 
 <style>
