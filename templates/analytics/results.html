@@ -14,7 +14,7 @@
         </div>
     </div>
 
-    <!-- Overall Metrics -->
+    {# Overall Metrics - Grid layout for metrics so users can see all the important stats at once #}
     {# Grid layout for metrics so users can see all the important stats at once without scrolling.
        Decided on 6 cards because it fills the screen nicely and covers the key quality indicators #}
     <div class="analytics-metrics-grid">
@@ -67,7 +67,7 @@
         </div>
     </div>
 
-    <!-- Recommendations -->
+    {# Recommendations Section #}
     {# Only show recommendations if there are any - keeps the page clean when code is already good #}
     {% if recommendations %}
     <div class="analytics-recommendations-section">
@@ -94,7 +94,7 @@
     </div>
     {% endif %}
 
-    <!-- Function Metrics -->
+    {# Function Metrics Table #}
     {# Function metrics table is the most detailed part - lets users drill down into which specific
        functions need work. This is way more useful than just overall stats #}
     {% if function_metrics %}
@@ -154,7 +154,7 @@
     </div>
     {% endif %}
 
-    <!-- Source Code Preview -->
+    {# Source Code Preview Section #}
     {# Including the actual source code at the bottom so users can reference what they analyzed.
        Especially helpful when looking at function metrics - can scroll down and see the actual code #}
     <div class="analytics-source-section">
