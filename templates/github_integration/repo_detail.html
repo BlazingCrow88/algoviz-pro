@@ -47,15 +47,14 @@
                         <strong style="color: #007bff;">📄 {{ file.path }}</strong>
                         <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9em;">{{ file.size }} bytes</p>
                     </div>
-                    <form method="post" action="{% url 'github_integration:fetch_code' %}" style="margin: 0;">
-                        {% csrf_token %}
-                        <input type="hidden" name="owner" value="{{ repository.owner }}">
-                        <input type="hidden" name="repo" value="{{ repository.name }}">
-                        <input type="hidden" name="path" value="{{ file.path }}">
-                        <button type="submit" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
-                            View Code →
-                        </button>
-                    </form>
+                    <button
+                        class="fetch-code-btn"
+                        data-owner="{{ repository.owner }}"
+                        data-repo="{{ repository.name }}"
+                        data-path="{{ file.path }}"
+                        style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                        View Code →
+                    </button>
                 </div>
                 {% endfor %}
             </div>
@@ -66,7 +65,7 @@
 
     <div style="margin-top: 30px;">
         <a href="{% url 'github_integration:search' %}" class="btn" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to Search</a>
-        <a href="{{ repository.html_url }}" target="_blank" class="btn" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">View on GitHub →</a>
+        <a href="{{ repository.url }}" target="_blank" class="btn" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">View on GitHub →</a>
     </div>
 </div>
 
@@ -77,5 +76,60 @@
     .file-item button:hover {
         background: #0056b3;
     }
+    .file-item button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
 </style>
+
+<script>
+// Handle "View Code" button clicks with AJAX
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('.fetch-code-btn');
+
+    buttons.forEach(button => {
+        button.addEventListener('click', async function() {
+            const owner = this.dataset.owner;
+            const repo = this.dataset.repo;
+            const path = this.dataset.path;
+
+            // Disable button and show loading state
+            this.disabled = true;
+            this.textContent = 'Fetching...';
+
+            try {
+                // Fetch the code from GitHub
+                const response = await fetch('{% url "github_integration:fetch_code" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        owner: owner,
+                        repo: repo,
+                        path: path
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Redirect to the code view page
+                    window.location.href = `/github/code/${data.file.id}/`;
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to fetch code'));
+                    this.disabled = false;
+                    this.textContent = 'View Code →';
+                }
+            } catch (error) {
+                console.error('Error fetching code:', error);
+                alert('An error occurred while fetching the code. Please try again.');
+                this.disabled = false;
+                this.textContent = 'View Code →';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
