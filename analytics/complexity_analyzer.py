@@ -1,8 +1,10 @@
 """
 Code Complexity Analyzer using Python's AST module.
 
-This module analyzes Python source code to calculate various complexity metrics
-including cyclomatic complexity, function metrics, and code quality indicators.
+This is the core of the analytics app - it takes Python code and calculates
+complexity metrics to help identify potential problem areas. I used AST (Abstract
+Syntax Tree) because it lets me analyze code structure without actually executing it,
+which is way safer and more reliable than trying to parse code with regex.
 """
 import ast
 from typing import Dict, List, Any, Union
@@ -12,12 +14,10 @@ class ComplexityAnalyzer:
     """
     Analyzes Python code complexity using Abstract Syntax Tree (AST).
 
-    Calculates:
-    - Cyclomatic Complexity (McCabe)
-    - Lines of Code (LOC)
-    - Number of functions/classes
-    - Maximum nesting depth
-    - Function-specific metrics
+    I built this to calculate the main metrics professors and code reviewers care about:
+    cyclomatic complexity (how many decision paths exist), lines of code, nesting depth,
+    and function-specific stats. The goal is to catch overly complex code before it
+    becomes unmaintainable.
 
     Example:
         >>> analyzer = ComplexityAnalyzer()
@@ -27,12 +27,15 @@ class ComplexityAnalyzer:
     """
 
     def __init__(self):
-        """Initialize the analyzer."""
+        """Set up a fresh analyzer with empty metrics."""
         self.metrics: Dict[str, Any] = {}
         self.reset()
 
     def reset(self) -> None:
-        """Reset all metrics to initial state."""
+        """
+        Clear out all metrics back to zero.
+        I call this at the start of each analysis so old results don't pollute new ones.
+        """
         self.metrics = {
             'cyclomatic_complexity': 0,
             'total_lines': 0,
@@ -49,7 +52,11 @@ class ComplexityAnalyzer:
 
     def analyze(self, source_code: str) -> Dict[str, Any]:
         """
-        Analyze Python source code and return complexity metrics.
+        Main analysis entry point - this orchestrates all the complexity calculations.
+
+        I split this into multiple helper methods (_analyze_lines, _analyze_ast, etc.)
+        to keep things organized and testable. The flow is: reset metrics, analyze lines,
+        parse AST, calculate complexity, then generate recommendations.
 
         Args:
             source_code: Python source code as string
@@ -58,35 +65,24 @@ class ComplexityAnalyzer:
             dict: Dictionary containing all calculated metrics
 
         Raises:
-            SyntaxError: If source code has syntax errors
-
-        Example:
-            >>> analyzer = ComplexityAnalyzer()
-            >>> code = '''
-            ... def fibonacci(n):
-            ...     if n <= 1:
-            ...         return n
-            ...     return fibonacci(n-1) + fibonacci(n-2)
-            ... '''
-            >>> results = analyzer.analyze(code)
-            >>> print(f"Complexity: {results['cyclomatic_complexity']}")
+            SyntaxError: If source code has syntax errors (can't analyze broken code)
         """
         self.reset()
 
-        # Analyze lines
+        # Count lines first since it doesn't require valid syntax
         self._analyze_lines(source_code)
 
         try:
-            # Parse AST
+            # Parse into AST - this is where syntax errors would show up
             tree = ast.parse(source_code)
 
-            # Analyze AST
+            # Walk through the tree and collect metrics
             self._analyze_ast(tree)
 
-            # Calculate overall cyclomatic complexity
+            # Sum up complexity from all functions
             self.metrics['cyclomatic_complexity'] = self._calculate_total_complexity()
 
-            # Calculate average complexity per function
+            # Calculate average to show if complexity is spread out or concentrated
             if self.metrics['num_functions'] > 0:
                 self.metrics['avg_function_complexity'] = round(
                     self.metrics['cyclomatic_complexity'] / self.metrics['num_functions'],
@@ -95,19 +91,23 @@ class ComplexityAnalyzer:
             else:
                 self.metrics['avg_function_complexity'] = 0
 
-            # Generate recommendations
+            # Generate helpful suggestions based on what we found
             self.metrics['recommendations'] = self._generate_recommendations()
 
-            # Calculate maintainability index
+            # Overall quality score - higher is better
             self.metrics['maintainability_index'] = self._calculate_maintainability_index()
 
             return self.metrics
 
         except SyntaxError as e:
+            # Re-raise with a clearer message for the user
             raise SyntaxError(f"Invalid Python syntax: {str(e)}")
 
     def _analyze_lines(self, source_code: str) -> None:
-        """Analyze line-based metrics."""
+        """
+        Count different types of lines (code, comments, blank).
+        This gives a basic size metric before we dive into the AST.
+        """
         lines = source_code.split('\n')
         self.metrics['total_lines'] = len(lines)
 
@@ -120,26 +120,30 @@ class ComplexityAnalyzer:
                 self.metrics['comment_lines'] += 1
             else:
                 self.metrics['code_lines'] += 1
-                # Check for inline comments
+                # Also count inline comments since they're still documentation
                 if '#' in line:
                     self.metrics['comment_lines'] += 1
 
     def _analyze_ast(self, tree: ast.AST) -> None:
-        """Analyze the Abstract Syntax Tree."""
+        """
+        Walk through the entire AST and collect structural information.
+        ast.walk() is perfect here because it hits every node without me having
+        to manually traverse the tree recursively.
+        """
         for node in ast.walk(tree):
-            # Count functions
+            # Track function definitions and analyze each one individually
             if isinstance(node, ast.FunctionDef):
                 self.metrics['num_functions'] += 1
                 func_metrics = self._analyze_function(node)
                 self.metrics['functions'].append(func_metrics)
 
-            # Count classes
+            # Track class definitions
             elif isinstance(node, ast.ClassDef):
                 self.metrics['num_classes'] += 1
                 class_metrics = self._analyze_class(node)
                 self.metrics['classes'].append(class_metrics)
 
-            # Count imports
+            # Track imports to show dependencies
             elif isinstance(node, (ast.Import, ast.ImportFrom)):
                 import_info = self._get_import_info(node)
                 if import_info:
@@ -147,14 +151,11 @@ class ComplexityAnalyzer:
 
     def _analyze_function(self, node: ast.FunctionDef) -> Dict[str, Any]:
         """
-        Analyze a function definition.
+        Dig into individual functions to get detailed metrics.
 
-        Returns metrics specific to this function:
-        - Name
-        - Number of parameters
-        - Lines of code
-        - Cyclomatic complexity
-        - Nesting depth
+        This is where the really useful stuff happens - finding which specific functions
+        are too complex. I track complexity, length, params, and nesting because those
+        are the main indicators of hard-to-maintain code.
         """
         func_info = {
             'name': node.name,
@@ -165,7 +166,7 @@ class ComplexityAnalyzer:
             'max_depth': self._calculate_max_depth(node),
         }
 
-        # Update global max nesting depth
+        # Keep track of the worst nesting we've seen across all functions
         if func_info['max_depth'] > self.metrics['max_nesting_depth']:
             self.metrics['max_nesting_depth'] = func_info['max_depth']
 
@@ -173,7 +174,7 @@ class ComplexityAnalyzer:
 
     @staticmethod
     def _analyze_class(node: ast.ClassDef) -> Dict[str, Any]:
-        """Analyze a class definition."""
+        """Pull out basic class info - mainly just counting methods for now."""
         methods = [n for n in node.body if isinstance(n, ast.FunctionDef)]
         method_names = [m.name for m in methods]
 
@@ -187,33 +188,30 @@ class ComplexityAnalyzer:
     @staticmethod
     def _calculate_cyclomatic_complexity(node: ast.AST) -> int:
         """
-        Calculate McCabe cyclomatic complexity for a node.
+        Calculate McCabe cyclomatic complexity - basically counting decision points.
 
-        Cyclomatic complexity = Number of decision points + 1
+        The formula is: number of decision points + 1
+        More decisions = more test cases needed = harder to understand.
 
-        Decision points include:
-        - if statements
-        - for/while loops
-        - except clauses
-        - boolean operators (and, or)
-        - comprehensions
+        I count if/while/for as +1 each, boolean operators (and/or) add complexity,
+        and exception handlers too since they're alternate code paths.
         """
-        complexity = 1  # Base complexity
+        complexity = 1  # Start at 1 (the straight-through path)
 
         for child in ast.walk(node):
-            # Decision points
+            # Each control structure adds a decision point
             if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor)):
                 complexity += 1
 
-            # Exception handlers
+            # Exception handlers are alternate paths
             elif isinstance(child, ast.ExceptHandler):
                 complexity += 1
 
-            # Boolean operators in conditions
+            # Boolean operators create multiple paths (if x and y and z = 3 paths)
             elif isinstance(child, ast.BoolOp):
                 complexity += len(child.values) - 1
 
-            # Comprehensions
+            # Comprehensions are compact but still add complexity
             elif isinstance(child, (ast.ListComp, ast.DictComp, ast.SetComp)):
                 complexity += 1
 
@@ -222,12 +220,11 @@ class ComplexityAnalyzer:
     @staticmethod
     def _calculate_max_depth(node: ast.AST, current_depth: int = 0) -> int:
         """
-        Calculate maximum nesting depth.
+        Find the deepest level of nesting in the code.
 
-        Depth increases for:
-        - Function definitions
-        - Class definitions
-        - Control structures (if, for, while, with, try)
+        This is recursive because nesting is naturally a tree structure.
+        Each time we hit an if/for/while/etc, we go one level deeper.
+        Deeply nested code is hard to read, so this metric flags potential issues.
         """
         max_depth = current_depth
 
@@ -235,7 +232,7 @@ class ComplexityAnalyzer:
                         ast.Try, ast.FunctionDef, ast.ClassDef)
 
         for child in ast.iter_child_nodes(node):
-            # Increase depth for nesting structures
+            # Recurse deeper when we hit nesting structures
             if isinstance(child, nesting_nodes):
                 child_depth = ComplexityAnalyzer._calculate_max_depth(child, current_depth + 1)
             else:
@@ -247,14 +244,20 @@ class ComplexityAnalyzer:
 
     @staticmethod
     def _count_function_lines(node: ast.FunctionDef) -> int:
-        """Count lines of code in a function."""
+        """
+        Count how many lines a function spans.
+        Newer Python versions give us end_lineno, older ones don't - so we handle both.
+        """
         if not hasattr(node, 'end_lineno') or node.end_lineno is None:
             return 1
         return node.end_lineno - node.lineno + 1
 
     @staticmethod
     def _get_import_info(node: Union[ast.Import, ast.ImportFrom]) -> Dict[str, Any]:
-        """Extract import information."""
+        """
+        Extract what modules/packages are being imported.
+        I distinguish between 'import x' and 'from x import y' since they're different.
+        """
         if isinstance(node, ast.Import):
             return {
                 'type': 'import',
@@ -269,7 +272,10 @@ class ComplexityAnalyzer:
         return {}
 
     def _calculate_total_complexity(self) -> int:
-        """Calculate total cyclomatic complexity across all functions."""
+        """
+        Add up complexity from all functions plus the module-level code.
+        Starting at 1 accounts for the main execution path of the module.
+        """
         total = 1  # Base complexity for module
         for func in self.metrics['functions']:
             total += func['complexity']
@@ -277,37 +283,38 @@ class ComplexityAnalyzer:
 
     def _calculate_maintainability_index(self) -> float:
         """
-        Calculate maintainability index (simplified version).
+        Generate an overall quality score from 0-100 (higher is better).
 
-        MI = 171 - 5.2 * ln(HV) - 0.23 * CC - 16.2 * ln(LOC)
-
-        Where:
-        - HV = Halstead Volume (simplified: use LOC as proxy)
-        - CC = Cyclomatic Complexity
-        - LOC = Lines of Code
-
-        Simplified version: Based on complexity and LOC ratio
+        The real MI formula uses Halstead volume and is pretty complex, so I simplified it
+        to just ratio of complexity to lines of code. If you have high complexity in few
+        lines, that's hard to maintain, so the score drops.
         """
-        loc = max(self.metrics['code_lines'], 1)
+        loc = max(self.metrics['code_lines'], 1)  # Avoid division by zero
         cc = self.metrics['cyclomatic_complexity']
 
-        # Simplified MI: 100 - (complexity_per_line * 20)
+        # Higher complexity per line = lower maintainability
         complexity_ratio = cc / loc
         mi = max(0, min(100, 100 - (complexity_ratio * 100)))
 
         return round(mi, 2)
 
     def _generate_recommendations(self) -> List[str]:
-        """Generate code quality recommendations based on metrics."""
+        """
+        Look at the metrics and suggest improvements.
+
+        I use thresholds based on common best practices: complexity >10 per function
+        is considered high, >50 overall is concerning, nesting >4 gets hard to follow,
+        and functions >50 lines usually try to do too much.
+        """
         recommendations = []
 
-        # Check cyclomatic complexity
+        # Check overall complexity
         if self.metrics['cyclomatic_complexity'] > 50:
             recommendations.append(
                 "⚠️ High overall complexity. Consider breaking down into smaller functions."
             )
 
-        # Check individual function complexity
+        # Flag individual problem functions
         complex_functions = [f for f in self.metrics['functions'] if f['complexity'] > 10]
         if complex_functions:
             func_names = ', '.join(f['name'] for f in complex_functions[:3])
@@ -316,14 +323,14 @@ class ComplexityAnalyzer:
                 f"Consider refactoring: {func_names}"
             )
 
-        # Check nesting depth
+        # Check for deep nesting
         if self.metrics['max_nesting_depth'] > 4:
             recommendations.append(
                 f"⚠️ Maximum nesting depth is {self.metrics['max_nesting_depth']}. "
                 "Consider extracting nested logic into separate functions."
             )
 
-        # Check long functions
+        # Check for long functions
         long_functions = [f for f in self.metrics['functions'] if f['num_lines'] > 50]
         if long_functions:
             recommendations.append(
@@ -331,14 +338,14 @@ class ComplexityAnalyzer:
                 "Consider breaking them down."
             )
 
-        # Check for lack of functions
+        # Suggest more modularization if it's mostly flat code
         if self.metrics['code_lines'] > 100 and self.metrics['num_functions'] < 3:
             recommendations.append(
                 "💡 Code could benefit from more modularization. "
                 "Consider extracting repeated logic into functions."
             )
 
-        # Positive feedback
+        # Give positive feedback when things look good
         if not recommendations:
             recommendations.append(
                 "✅ Code shows good structure and maintainability!"
@@ -348,27 +355,34 @@ class ComplexityAnalyzer:
 
     def generate_report(self) -> str:
         """
-        Generate a human-readable report of the analysis.
-
-        Returns:
-            str: Formatted text report
+        Format all the metrics into a readable text report.
+        This gets displayed in the web interface so users can understand the analysis.
         """
         if not self.metrics:
             return "No analysis performed yet."
 
-        report = ["=" * 60, "CODE COMPLEXITY ANALYSIS REPORT", "=" * 60, "", "OVERALL METRICS:",
-                  f"  Total Lines: {self.metrics['total_lines']}", f"  Code Lines: {self.metrics['code_lines']}",
-                  f"  Comment Lines: {self.metrics['comment_lines']}", f"  Blank Lines: {self.metrics['blank_lines']}",
-                  f"  Cyclomatic Complexity: {self.metrics['cyclomatic_complexity']}",
-                  f"  Maintainability Index: {self.metrics['maintainability_index']}/100", "", "CODE STRUCTURE:",
-                  f"  Functions: {self.metrics['num_functions']}", f"  Classes: {self.metrics['num_classes']}",
-                  f"  Max Nesting Depth: {self.metrics['max_nesting_depth']}", ""]
+        # Build the report section by section for clarity
+        report = [
+            "=" * 60,
+            "CODE COMPLEXITY ANALYSIS REPORT",
+            "=" * 60,
+            "",
+            "OVERALL METRICS:",
+            f"  Total Lines: {self.metrics['total_lines']}",
+            f"  Code Lines: {self.metrics['code_lines']}",
+            f"  Comment Lines: {self.metrics['comment_lines']}",
+            f"  Blank Lines: {self.metrics['blank_lines']}",
+            f"  Cyclomatic Complexity: {self.metrics['cyclomatic_complexity']}",
+            f"  Maintainability Index: {self.metrics['maintainability_index']}/100",
+            "",
+            "CODE STRUCTURE:",
+            f"  Functions: {self.metrics['num_functions']}",
+            f"  Classes: {self.metrics['num_classes']}",
+            f"  Max Nesting Depth: {self.metrics['max_nesting_depth']}",
+            ""
+        ]
 
-        # Overall metrics
-
-        # Structure
-
-        # Functions
+        # Show details for each function if there are any
         if self.metrics['functions']:
             report.append("FUNCTION DETAILS:")
             for func in self.metrics['functions']:
@@ -379,7 +393,7 @@ class ComplexityAnalyzer:
                 report.append(f"    Max Depth: {func['max_depth']}")
             report.append("")
 
-        # Recommendations
+        # Add our generated recommendations at the end
         report.append("RECOMMENDATIONS:")
         for rec in self.metrics['recommendations']:
             report.append(f"  {rec}")

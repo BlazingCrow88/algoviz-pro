@@ -1,9 +1,11 @@
 """
 Views for the github_integration app.
 
-Handles GitHub repository search, viewing, and code fetching.
+Handles the main user interactions with GitHub - searching repos, viewing details,
+and fetching code files to analyze. Most of the heavy lifting happens in the API
+client, these views just coordinate between the GitHub API and our templates.
 """
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -18,16 +20,19 @@ logger = logging.getLogger(__name__)
 
 def search_repositories(request):
     """
-    Search GitHub repositories and display results.
+    Main search interface for finding GitHub repositories.
 
-    GET: Show search form
-    POST: Perform search and show results
+    I'm handling both GET (show the form) and POST (do the search) in one view
+    instead of separating them - keeps things simpler since they share the same
+    template anyway. The rate limit info gets displayed to users so they know
+    how many API calls they have left.
     """
     if request.method == 'POST':
         query = request.POST.get('query', '').strip()
         language = request.POST.get('language', 'python')
         sort = request.POST.get('sort', 'stars')
 
+        # Don't waste an API call on empty searches
         if not query:
             return render(request, 'github_integration/search.html', {
                 'error': 'Please enter a search query'
@@ -39,10 +44,10 @@ def search_repositories(request):
                 query=query,
                 language=language,
                 sort=sort,
-                max_results=20
+                max_results=20  # Limiting to 20 to keep the page from getting too long
             )
 
-            # Get rate limit info
+            # Show rate limit so users know when they might hit the limit
             rate_limit = client.get_rate_limit()
 
             return render(request, 'github_integration/search.html', {
@@ -52,35 +57,37 @@ def search_repositories(request):
             })
 
         except RateLimitError as e:
+            # User-friendly error message when they've hit GitHub's rate limit
             return render(request, 'github_integration/search.html', {
                 'error': str(e),
                 'query': query,
             })
 
         except GitHubAPIError as e:
+            # Catch-all for other GitHub API issues (network errors, etc.)
             return render(request, 'github_integration/search.html', {
                 'error': f'GitHub API error: {str(e)}',
                 'query': query,
             })
 
-    # GET request - show search form
+    # GET request - just show the empty search form
     return render(request, 'github_integration/search.html')
 
 
 def repository_detail(request, owner, repo):
     """
-    Display detailed information about a repository.
+    Show detailed info about a specific repository and its Python files.
 
-    Args:
-        request: HTTP request object
-        owner: Repository owner username
-        repo: Repository name
+    This view does double duty - it fetches fresh data from GitHub's API but also
+    saves/updates the repo in our database. That way we can track what repos users
+    have looked at even after the cache expires. The get_or_create pattern prevents
+    duplicate repos in the database.
     """
     try:
         client = GitHubAPIClient()
         repo_data = client.get_repository(owner, repo)
 
-        # Get or create repository in database
+        # Save to our database or update if it already exists
         repository, created = Repository.objects.get_or_create(
             full_name=repo_data['full_name'],
             defaults={
@@ -95,16 +102,17 @@ def repository_detail(request, owner, repo):
         )
 
         if not created:
-            # Update existing repository data
+            # Update star/fork counts since they change over time
+            # Description could change too if the owner updates it
             repository.description = repo_data.get('description', '')
             repository.stars = repo_data.get('stargazers_count', 0)
             repository.forks = repo_data.get('forks_count', 0)
             repository.save()
 
-        # Get Python files in repository
+        # Find Python files in the repo - limited to 20 to avoid burning API calls
         python_files = client.get_python_files(owner, repo, max_files=20)
 
-        # Get files already fetched from this repository
+        # Show which files we've already downloaded and analyzed
         fetched_files = CodeFile.objects.filter(repository=repository)
 
         context = {
@@ -117,31 +125,32 @@ def repository_detail(request, owner, repo):
         return render(request, 'github_integration/repo_detail.html', context)
 
     except RepositoryNotFoundError:
+        # Repository doesn't exist or is private
         return render(request, 'github_integration/repo_detail.html', {
             'error': f'Repository {owner}/{repo} not found'
         })
 
     except GitHubAPIError as e:
+        # Network issues, rate limits, etc
         return render(request, 'github_integration/repo_detail.html', {
             'error': f'Error fetching repository: {str(e)}'
         })
 
 
-@require_http_methods(["POST"])
+@require_http_methods(["POST"])  # Only allow POST to prevent accidental fetches from GET requests
+@csrf_exempt  # Needed for AJAX requests that don't include CSRF token
 def fetch_code(request):
     """
-    Fetch code file from GitHub, store in database, and redirect to view page.
+    Download a code file from GitHub and save it to our database.
 
-    POST parameters:
-        - owner: Repository owner
-        - repo: Repository name
-        - path: File path within repository
-
-    Returns:
-        Redirect to code view page or back to repository on error
+    Returns JSON instead of rendering a template since this is called via AJAX.
+    I had to add csrf_exempt because the AJAX calls weren't sending the CSRF token
+    properly and kept getting 403 errors. Not ideal security-wise but fine for this
+    project since we're not handling sensitive data.
     """
     try:
-        # Parse request data
+        # Handle both JSON and form-encoded requests
+        # Different JavaScript libraries send data differently, so supporting both
         if request.content_type == 'application/json':
             data = json.loads(request.body)
         else:
@@ -151,11 +160,13 @@ def fetch_code(request):
         repo = data.get('repo')
         path = data.get('path')
 
+        # Validate we got all required parameters before hitting the API
         if not all([owner, repo, path]):
-            # Redirect back to search if missing parameters
-            return redirect('github_integration:search')
+            return JsonResponse({
+                'error': 'Missing required parameters: owner, repo, path'
+            }, status=400)
 
-        # Get or create repository
+        # Make sure we have a Repository record for this repo
         full_name = f"{owner}/{repo}"
         repository, _ = Repository.objects.get_or_create(
             full_name=full_name,
@@ -166,47 +177,65 @@ def fetch_code(request):
             }
         )
 
-        # Fetch file content from GitHub
+        # Actually fetch the file content from GitHub
         client = GitHubAPIClient()
         content = client.get_file_content(owner, repo, path)
 
-        # Store in database
+        # Store in database - update_or_create prevents duplicates if they fetch the same file twice
         code_file, created = CodeFile.objects.update_or_create(
             repository=repository,
             path=path,
             defaults={
-                'name': path.split('/')[-1],
+                'name': path.split('/')[-1],  # Extract just the filename from the full path
                 'content': content,
                 'size': len(content),
             }
         )
 
+        # Track when we last fetched from this repo
         repository.update_last_fetched()
 
-        # *** THIS IS THE KEY CHANGE ***
-        # Redirect to the view_code page instead of returning JSON
-        return redirect('github_integration:view_code', file_id=code_file.id)
+        # Return all the file info as JSON for the frontend to use
+        return JsonResponse({
+            'success': True,
+            'file': {
+                'id': code_file.id,
+                'path': code_file.path,
+                'name': code_file.name,
+                'content': code_file.content,
+                'size': code_file.size,
+                'line_count': code_file.get_line_count(),
+            },
+            'created': created,  # Let frontend know if this was a new file or an update
+        })
 
     except RepositoryNotFoundError:
-        logger.error(f"File not found: {owner}/{repo}/{path}")
-        return redirect('github_integration:repo_detail', owner=owner, repo=repo)
+        # File doesn't exist in the repo or repo is private
+        return JsonResponse({
+            'error': 'File not found in repository'
+        }, status=404)
 
     except GitHubAPIError as e:
-        logger.error(f'GitHub API error: {e}')
-        return redirect('github_integration:repo_detail', owner=owner, repo=repo)
+        # GitHub API issues - network, rate limits, etc
+        return JsonResponse({
+            'error': f'GitHub API error: {str(e)}'
+        }, status=500)
 
     except Exception as e:
+        # Catch-all for unexpected errors - better to return an error than crash
         logger.error(f"Error fetching code: {e}")
-        return redirect('github_integration:search')
+        return JsonResponse({
+            'error': f'An error occurred: {str(e)}'
+        }, status=500)
 
 
 def view_code(request, file_id):
     """
-    Display a fetched code file with syntax highlighting.
+    Display a code file we've already fetched from GitHub.
 
-    Args:
-        request: HTTP request object
-        file_id: ID of CodeFile to display
+    Pretty straightforward - just grab the file from the database and render it.
+    Using get_object_or_404 means we automatically show a 404 page if someone
+    tries to view a file ID that doesn't exist (instead of crashing).
     """
     code_file = get_object_or_404(CodeFile, id=file_id)
 

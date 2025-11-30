@@ -1,18 +1,13 @@
 """
 GitHub API Client for fetching repository and code data.
 
-This module provides a comprehensive client for interacting with GitHub's REST API v3.
-It includes error handling, rate limiting, caching, and retry logic.
+Handles all the GitHub API interactions for the project. The main challenge here
+was dealing with GitHub's rate limits - you only get 60 requests/hour without
+authentication, so I had to implement caching and retry logic to avoid constantly
+hitting the limit during testing.
 
-Features:
-- Repository search
-- File content retrieval
-- Rate limit handling
-- Response caching
-- Automatic retries with exponential backoff
-- Comprehensive error handling
-
-GitHub API Documentation: https://docs.github.com/en/rest
+The exponential backoff was particularly important because sometimes GitHub's API
+just times out randomly, especially when searching through large repos.
 """
 import requests
 import time
@@ -30,39 +25,26 @@ class GitHubAPIError(Exception):
 
 
 class RateLimitError(GitHubAPIError):
-    """Raised when GitHub API rate limit is exceeded."""
+    """Raised when we hit GitHub's rate limit - happens more than you'd think!"""
     pass
 
 
 class RepositoryNotFoundError(GitHubAPIError):
-    """Raised when repository is not found."""
+    """Raised when repository doesn't exist or isn't public."""
     pass
 
 
 class GitHubAPIClient:
     """
-    Client for interacting with GitHub REST API v3.
+    Handles all GitHub API requests for the app.
 
-    This client handles all interactions with GitHub's API including:
-    - Searching for repositories
-    - Fetching repository details
-    - Retrieving file contents
-    - Managing rate limits
-    - Caching responses
+    I built this as a separate client class to keep all the API logic in one place
+    instead of scattering requests throughout the views. Makes it way easier to handle
+    errors and rate limiting consistently.
 
-    Attributes:
-        base_url: GitHub API base URL
-        timeout: Request timeout in seconds
-        cache_timeout: Cache duration in seconds
-        max_retries: Maximum number of retry attempts
-        retry_delay: Initial delay between retries (seconds)
-        session: Requests session for connection pooling
-
-    Example:
-        >>> client = GitHubAPIClient()
-        >>> repos = client.search_repositories('django', max_results=10)
-        >>> for repo in repos:
-        ...     print(repo['name'])
+    The caching is crucial - without it, you'd burn through GitHub's rate limit in
+    like 5 minutes of testing. I'm caching responses for 30 minutes by default since
+    repo data doesn't change that frequently anyway.
     """
 
     def __init__(
@@ -73,28 +55,26 @@ class GitHubAPIClient:
             cache_timeout: int = None
     ):
         """
-        Initialize GitHub API client.
+        Set up the GitHub API client.
 
-        Args:
-            api_token: Optional GitHub personal access token for higher rate limits
-            base_url: GitHub API base URL (default from settings)
-            timeout: Request timeout in seconds (default from settings)
-            cache_timeout: Cache duration in seconds (default from settings)
+        The api_token is optional but highly recommended - it bumps your rate limit
+        from 60 to 5000 requests per hour. Without it, you'll hit the limit constantly
+        during development.
         """
         self.base_url = base_url or getattr(settings, 'GITHUB_API_BASE_URL', 'https://api.github.com')
         self.timeout = timeout or getattr(settings, 'GITHUB_API_TIMEOUT', 10)
-        self.cache_timeout = cache_timeout or getattr(settings, 'GITHUB_CACHE_TIMEOUT', 1800)
+        self.cache_timeout = cache_timeout or getattr(settings, 'GITHUB_CACHE_TIMEOUT', 1800)  # 30 minutes
         self.max_retries = getattr(settings, 'GITHUB_API_MAX_RETRIES', 3)
         self.retry_delay = getattr(settings, 'GITHUB_API_RETRY_DELAY', 1)
 
-        # Setup session with headers
+        # Using a session for connection pooling - more efficient than creating
+        # a new connection for every request
         self.session = requests.Session()
         self.session.headers.update({
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'AlgoViz-Pro/1.0'
+            'Accept': 'application/vnd.github.v3+json',  # GitHub requires this header for their v3 API
+            'User-Agent': 'AlgoViz-Pro/1.0'  # GitHub requires a user agent or they reject the request
         })
 
-        # Add authentication token if provided
         if api_token:
             self.session.headers['Authorization'] = f'token {api_token}'
 
@@ -105,25 +85,16 @@ class GitHubAPIClient:
             use_cache: bool = True
     ) -> Dict[str, Any]:
         """
-        Make HTTP request to GitHub API with retry logic and caching.
+        Core request method that handles all the messy stuff like retries and caching.
 
-        Args:
-            endpoint: API endpoint (e.g., '/search/repositories')
-            params: Query parameters
-            use_cache: Whether to use cached responses
-
-        Returns:
-            dict: JSON response from API
-
-        Raises:
-            RateLimitError: When rate limit is exceeded
-            RepositoryNotFoundError: When resource is not found
-            GitHubAPIError: For other API errors
+        I made this a separate method so that I don't have to copy-paste retry logic and
+        cache checks in every API call. The exponential backoff helps when GitHub's
+        servers are being slow - starts at 1 second, then 2, then 4 if retries are needed.
         """
         url = f"{self.base_url}{endpoint}"
         cache_key = None
 
-        # Check cache first
+        # Check cache first to avoid unnecessary API calls
         if use_cache:
             cache_key = f"github_api:{endpoint}:{str(params)}"
             cached_response = cache.get(cache_key)
@@ -131,7 +102,7 @@ class GitHubAPIClient:
                 logger.debug(f"Cache hit for {endpoint}")
                 return cached_response
 
-        # Retry logic with exponential backoff
+        # Try up to max_retries times before giving up
         for attempt in range(self.max_retries):
             try:
                 response = self.session.get(
@@ -140,7 +111,8 @@ class GitHubAPIClient:
                     timeout=self.timeout
                 )
 
-                # Check rate limit
+                # GitHub returns 403 for both auth failures AND rate limits, so we
+                # need to check the specific headers to know which it is
                 if response.status_code == 403:
                     rate_limit_remaining = response.headers.get('X-RateLimit-Remaining', '0')
                     if rate_limit_remaining == '0':
@@ -151,19 +123,15 @@ class GitHubAPIClient:
                             f"Resets in {wait_time} seconds."
                         )
 
-                # Check for 404
                 if response.status_code == 404:
                     raise RepositoryNotFoundError(
                         f"Resource not found: {endpoint}"
                     )
 
-                # Raise for other HTTP errors
                 response.raise_for_status()
-
-                # Parse JSON response
                 data = response.json()
 
-                # Cache successful response
+                # Only cache successful responses
                 if use_cache and cache_key:
                     cache.set(cache_key, data, self.cache_timeout)
 
@@ -171,7 +139,7 @@ class GitHubAPIClient:
 
             except requests.exceptions.Timeout:
                 if attempt < self.max_retries - 1:
-                    wait = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    wait = self.retry_delay * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
                     logger.warning(f"Request timeout, retrying in {wait}s...")
                     time.sleep(wait)
                 else:
@@ -188,30 +156,21 @@ class GitHubAPIClient:
             except requests.exceptions.RequestException as e:
                 raise GitHubAPIError(f"Request failed: {str(e)}")
 
-        # This should never be reached due to exceptions, but added for type safety
         raise GitHubAPIError("Request failed: Maximum retries exceeded")
 
     def get_rate_limit(self) -> Dict[str, Any]:
         """
-        Get current rate limit status.
+        Check how many API calls we have left.
 
-        Returns:
-            dict: Rate limit information containing:
-                - limit: Maximum requests per hour
-                - remaining: Remaining requests
-                - reset: Unix timestamp when limit resets
-                - used: Number of requests used
-
-        Example:
-            >>> client = GitHubAPIClient()
-            >>> limits = client.get_rate_limit()
-            >>> print(f"Remaining: {limits['remaining']}/{limits['limit']}")
+        Useful for debugging when things start failing - usually means we hit the limit.
+        Don't cache this one since we want real-time data on our remaining requests.
         """
         try:
             data = self._make_request('/rate_limit', use_cache=False)
             return data['resources']['core']
         except Exception as e:
             logger.error(f"Failed to get rate limit: {e}")
+            # Return zeros if we can't get rate limit info
             return {
                 'limit': 0,
                 'remaining': 0,
@@ -227,31 +186,13 @@ class GitHubAPIClient:
             max_results: int = 10
     ) -> List[Dict[str, Any]]:
         """
-        Search for GitHub repositories.
+        Search GitHub for repositories matching the query.
 
-        Args:
-            query: Search query (e.g., 'django', 'machine learning')
-            language: Programming language filter (default: 'python')
-            sort: Sort field ('stars', 'forks', 'updated')
-            max_results: Maximum number of results to return
-
-        Returns:
-            list: List of repository dictionaries, each containing:
-                - name: Repository name
-                - full_name: Owner/repository
-                - description: Repository description
-                - html_url: GitHub URL
-                - stargazers_count: Number of stars
-                - language: Primary language
-                - owner: Owner information
-
-        Example:
-            >>> client = GitHubAPIClient()
-            >>> repos = client.search_repositories('django', max_results=5)
-            >>> for repo in repos:
-            ...     print(f"{repo['full_name']}: {repo['stargazers_count']} stars")
+        I'm defaulting to Python repos sorted by stars since that's what we care about
+        for this project - finding popular algorithm implementations. The language
+        filter helps avoid getting repos in languages we can't analyze.
         """
-        # Build search query
+        # Build the search query string that GitHub expects
         search_query = query
         if language:
             search_query += f" language:{language}"
@@ -260,30 +201,31 @@ class GitHubAPIClient:
             'q': search_query,
             'sort': sort,
             'order': 'desc',
-            'per_page': min(max_results, 100)  # GitHub max is 100
+            'per_page': min(max_results, 100)  # GitHub's API maxes out at 100 per page
         }
 
         try:
             data = self._make_request('/search/repositories', params=params)
             repositories = data.get('items', [])
 
-            # Extract relevant fields
+            # Pull out just the fields we actually need instead of storing everything
+            # GitHub sends back. Keeps our database cleaner and reduces storage.
             results = []
-            for repository in repositories[:max_results]:
+            for repo in repositories[:max_results]:
                 results.append({
-                    'name': repository['name'],
-                    'full_name': repository['full_name'],
-                    'description': repository.get('description', 'No description'),
-                    'html_url': repository['html_url'],
-                    'stargazers_count': repository.get('stargazers_count', 0),
-                    'forks_count': repository.get('forks_count', 0),
-                    'language': repository.get('language', 'Unknown'),
+                    'name': repo['name'],
+                    'full_name': repo['full_name'],
+                    'description': repo.get('description', 'No description'),
+                    'html_url': repo['html_url'],
+                    'stargazers_count': repo.get('stargazers_count', 0),
+                    'forks_count': repo.get('forks_count', 0),
+                    'language': repo.get('language', 'Unknown'),
                     'owner': {
-                        'login': repository['owner']['login'],
-                        'avatar_url': repository['owner']['avatar_url'],
+                        'login': repo['owner']['login'],
+                        'avatar_url': repo['owner']['avatar_url'],
                     },
-                    'created_at': repository.get('created_at'),
-                    'updated_at': repository.get('updated_at'),
+                    'created_at': repo.get('created_at'),
+                    'updated_at': repo.get('updated_at'),
                 })
 
             return results
@@ -294,22 +236,10 @@ class GitHubAPIClient:
 
     def get_repository(self, owner: str, repo_name: str) -> Dict[str, Any]:
         """
-        Get detailed information about a specific repository.
+        Get detailed info about a specific repository.
 
-        Args:
-            owner: Repository owner (username or organization)
-            repo_name: Repository name
-
-        Returns:
-            dict: Repository information
-
-        Raises:
-            RepositoryNotFoundError: If repository doesn't exist
-
-        Example:
-            >>> client = GitHubAPIClient()
-            >>> repository = client.get_repository('django', 'django')
-            >>> print(repository['description'])
+        Used when we need more than just search results - like when actually
+        fetching code files from a repo.
         """
         endpoint = f'/repos/{owner}/{repo_name}'
         return self._make_request(endpoint)
@@ -321,26 +251,16 @@ class GitHubAPIClient:
             path: str = ''
     ) -> List[Dict[str, Any]]:
         """
-        Get contents of a repository directory.
+        List files and folders in a repository directory.
 
-        Args:
-            owner: Repository owner
-            repo_name: Repository name
-            path: Path within repository (empty for root)
-
-        Returns:
-            list: List of files and directories
-
-        Example:
-            >>> client = GitHubAPIClient()
-            >>> contents = client.get_repository_contents('django', 'django', 'django')
-            >>> for item in contents:
-            ...     print(f"{item['name']} ({item['type']})")
+        GitHub's API is a bit weird here - it returns a list for directories but
+        a single dict for individual files, so I'm normalizing that to always
+        return a list.
         """
         endpoint = f'/repos/{owner}/{repo_name}/contents/{path}'
         result = self._make_request(endpoint)
 
-        # GitHub API returns a list for directories, dict for files
+        # Normalize the response to always be a list for consistency
         if isinstance(result, list):
             return result
         else:
@@ -354,21 +274,11 @@ class GitHubAPIClient:
             decode: bool = True
     ) -> str:
         """
-        Get content of a specific file.
+        Fetch the actual content of a file from GitHub.
 
-        Args:
-            owner: Repository owner
-            repo_name: Repository name
-            path: File path within repository
-            decode: Whether to decode base64 content
-
-        Returns:
-            str: File content (decoded if decode=True)
-
-        Example:
-            >>> client = GitHubAPIClient()
-            >>> file_content = client.get_file_content('django', 'django', 'setup.py')
-            >>> print(file_content[:100])
+        GitHub sends file contents as base64 encoded by default (no idea why),
+        so we need to decode it to get readable text. That's what the decode
+        parameter is for.
         """
         endpoint = f'/repos/{owner}/{repo_name}/contents/{path}'
         data = self._make_request(endpoint)
@@ -389,25 +299,11 @@ class GitHubAPIClient:
             max_results: int = 10
     ) -> List[Dict[str, Any]]:
         """
-        Search for code within repositories.
+        Search for code snippets across GitHub.
 
-        Args:
-            query: Code search query
-            owner: Optional repository owner filter
-            repo_name: Optional repository name filter
-            extension: File extension filter (default: 'py')
-            max_results: Maximum results to return
-
-        Returns:
-            list: List of code search results
-
-        Example:
-            >>> client = GitHubAPIClient()
-            >>> results = client.search_code('def bubble_sort', extension='py')
-            >>> for result in results:
-            ...     print(result['path'])
+        Really useful for finding algorithm implementations. The extension filter
+        keeps us from getting results in random languages.
         """
-        # Build search query
         search_query = query
         if extension:
             search_query += f" extension:{extension}"
@@ -434,26 +330,16 @@ class GitHubAPIClient:
             max_files: int = 50
     ) -> List[Dict[str, Any]]:
         """
-        Recursively find all Python files in a repository.
+        Recursively find all Python files in a repo.
 
-        Args:
-            owner: Repository owner
-            repo_name: Repository name
-            path: Starting path (default: root)
-            max_files: Maximum number of files to return
-
-        Returns:
-            list: List of Python file paths and metadata
-
-        Example:
-            >>> client = GitHubAPIClient()
-            >>> files = client.get_python_files('django', 'django')
-            >>> for file in files[:5]:
-            ...     print(file['path'])
+        This was tricky to implement - had to make it recursive to handle nested
+        directories, but also needed to limit it so we don't try to fetch like
+        1000 files and blow through our API limits. That's why max_files exists.
         """
         python_files = []
 
         def scan_directory(current_path: str):
+            # Stop if we've hit our file limit
             if len(python_files) >= max_files:
                 return
 
@@ -472,10 +358,11 @@ class GitHubAPIClient:
                             'download_url': item.get('download_url'),
                         })
                     elif item['type'] == 'dir':
-                        # Recursively scan subdirectories
+                        # Dive into subdirectories to find more Python files
                         scan_directory(item['path'])
 
             except Exception as e:
+                # Don't crash the whole scan if one directory fails
                 logger.warning(f"Error scanning {current_path}: {e}")
 
         scan_directory(path)

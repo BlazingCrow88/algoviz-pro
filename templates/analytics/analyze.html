@@ -4,8 +4,12 @@
 {% block content %}
 <div class="analyze-container">
     <h1>Code Complexity Analysis</h1>
+    {# Explaining AST upfront because most students probably haven't used it before -
+       want to make it clear this is doing real code analysis, not just counting lines #}
     <p>Paste your Python code below to analyze its complexity using AST (Abstract Syntax Tree)</p>
 
+    {# Django's error handling - need to show validation errors without crashing the page.
+       Using an if check here because errors won't always exist #}
     {% if error %}
     <div class="analytics-error-message">
         <strong>⚠️ Error:</strong> {{ error }}
@@ -13,10 +17,14 @@
     {% endif %}
 
     <form method="post" class="analytics-analysis-form">
+        {# CSRF token is required for all POST forms in Django - security measure to prevent
+           cross-site request forgery attacks. Took me forever to remember this at first! #}
         {% csrf_token %}
 
         <div class="analytics-form-group">
             <label for="source_code">Python Source Code:</label>
+            {# Made the textarea 20 rows so users can paste actual functions without scrolling.
+               The placeholder gives a super simple example so people know the format #}
             <textarea
                 name="source_code"
                 id="source_code"
@@ -25,6 +33,8 @@
     return 'world'"
                 required
             >{% if source_code %}{{ source_code }}{% endif %}</textarea>
+            {# This help text explains what the analysis actually does - figured users should know
+               they're getting cyclomatic complexity and not just line counts #}
             <div class="analytics-help-text">
                 💡 Tip: Paste any Python code here to analyze cyclomatic complexity, function metrics, and code quality
             </div>
@@ -32,13 +42,18 @@
 
         <div class="analytics-form-actions">
             <button type="submit" class="btn btn-primary">🔍 Analyze Code</button>
+            {# Cancel button goes back to home instead of clearing the form - seemed more useful
+               since users can just refresh if they want to clear it #}
             <a href="{% url 'analytics:home' %}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 
+    {# Added example snippets section because testing showed people were confused about what to paste.
+       Having ready-to-copy examples makes the tool way more approachable #}
     <div class="analytics-examples-section">
         <h3>📝 Example Snippets</h3>
         <div class="analytics-examples-grid">
+            {# Simple example first to show the tool works with basic code #}
             <div class="analytics-example-card">
                 <h4>Simple Function</h4>
                 <pre>def hello():
@@ -46,6 +61,8 @@
                 <button onclick="copyExample(this)" class="analytics-copy-btn">Copy</button>
             </div>
 
+            {# Complex example with nested loops and conditionals to demonstrate what the
+               complexity analyzer is actually useful for - shows high cyclomatic complexity #}
             <div class="analytics-example-card">
                 <h4>Complex Function</h4>
                 <pre>def complex_function(n):
@@ -66,24 +83,27 @@
     </div>
 </div>
 
+{# Loading analytics-specific CSS last so it can override base styles if needed #}
 <link rel="stylesheet" href="{% static 'css/analytics.css' %}">
 
 <script>
+// Copy example code to clipboard when user clicks the button
+// Using the Clipboard API because it's way cleaner than the old document.execCommand approach
 function copyExample(button) {
     const pre = button.previousElementSibling;
     const code = pre.textContent;
-    
-    // Copy to clipboard
+
+    // Modern clipboard API - works in all browsers we care about
     navigator.clipboard.writeText(code).then(() => {
-        // Update button text
+        // Visual feedback is important - users need to know the copy actually worked
         const originalText = button.textContent;
         button.textContent = '✓ Copied!';
-        button.style.background = '#28a745';
-        
-        // Reset after 2 seconds
+        button.style.background = '#28a745';  // Bootstrap success green
+
+        // Reset after 2 seconds so button is ready for another copy
         setTimeout(() => {
             button.textContent = originalText;
-            button.style.background = '#007bff';
+            button.style.background = '#007bff';  // Back to primary blue
         }, 2000);
     });
 }

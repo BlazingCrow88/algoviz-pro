@@ -20,21 +20,22 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    # Django admin interface
+    # Admin panel - needed this for managing test data and checking database entries
     path('admin/', admin.site.urls),
 
-    # Root URL redirects to visualization home
+    # Redirect root to visualization since that's the main feature users want to see
+    # Used permanent=False so I can change the landing page later if needed
     path('', RedirectView.as_view(url='/visualization/', permanent=False)),
 
-    # Algorithm implementations and execution
+    # All the sorting/searching algorithm logic lives in the algorithms app
     path('algorithms/', include('algorithms.urls')),
 
-    # Visualization interface
+    # Main user interface where people interact with the visualizations
     path('visualization/', include('visualization.urls')),
 
-    # GitHub API integration
+    # GitHub integration for pulling and analyzing repositories
     path('github/', include('github_integration.urls')),
 
-    # Code complexity analytics
+    # Complexity analysis tools - separate from algorithms since it's a different feature
     path('analytics/', include('analytics.urls')),
 ]

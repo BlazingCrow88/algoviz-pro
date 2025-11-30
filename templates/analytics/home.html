@@ -4,23 +4,34 @@
 {% block content %}
 <div class="analytics-container">
     <h1>Code Analytics</h1>
+    {# Calling out AST in the subtitle because it sounds more legit than just "code analyzer" -
+       shows this is doing real parsing, not just regex pattern matching #}
     <p>Analyze Python code complexity using AST (Abstract Syntax Tree)</p>
 
+    {# Feature box up front so users know what they're getting before clicking around.
+       Originally had this at the bottom but moved it up after realizing people were confused
+       about what the tool actually does #}
     <div class="analytics-feature-box">
         <h3>📊 Features</h3>
         <ul>
             <li>Cyclomatic Complexity Analysis</li>
             <li>Function Length Metrics</li>
             <li>Code Quality Scores</li>
+            {# GitHub integration is listed here even though it's a separate app -
+               makes the whole platform feel more connected #}
             <li>GitHub Integration</li>
         </ul>
     </div>
 
+    {# Two main CTAs side by side - analyze is primary (brighter button) because that's the core
+       feature, but GitHub search is there as a quick way to grab code to analyze #}
     <div class="analytics-action-buttons">
         <a href="{% url 'analytics:analyze' %}" class="btn btn-primary">✨ Analyze Code Now</a>
         <a href="{% url 'github_integration:search' %}" class="btn btn-secondary">Search GitHub →</a>
     </div>
 
+    {# Only show recent analyses if they exist - no point showing an empty section to new users.
+       This conditional keeps the page clean when there's no history yet #}
     {% if recent_analyses %}
     <div class="analytics-recent-analyses">
         <h3>Recent Analyses</h3>
@@ -28,14 +39,23 @@
             {% for analysis in recent_analyses %}
             <div class="analytics-analysis-card">
                 <div class="analytics-analysis-header">
+                    {# Using get_complexity_rating.lower as a CSS class so we can color-code
+                       complexity badges (green=low, yellow=medium, red=high). Makes it way
+                       easier to spot problem code at a glance #}
                     <span class="analytics-complexity-badge {{ analysis.get_complexity_rating.lower }}">
                         Complexity: {{ analysis.cyclomatic_complexity }}
                     </span>
+                    {# Date format shows month/day/year with time - helpful for distinguishing between
+                       analyses from the same day when you're testing stuff repeatedly #}
                     <span class="analytics-date">{{ analysis.created_at|date:"M d, Y H:i" }}</span>
                 </div>
+                {# Quick stats give users the key metrics without clicking through - decided on these
+                   three because they're the most useful for a quick overview of code quality #}
                 <div class="analytics-analysis-stats">
                     <span>📊 {{ analysis.num_functions }} function(s)</span>
                     <span>📝 {{ analysis.code_lines }} lines</span>
+                    {# Floatformat:0 rounds to whole number because decimals looked too precise for
+                       what's essentially a rough quality score #}
                     <span>🔍 Maintainability: {{ analysis.maintainability_index|floatformat:0 }}</span>
                 </div>
                 <a href="{% url 'analytics:results' analysis.id %}" class="analytics-view-link">View Details →</a>
@@ -46,5 +66,7 @@
     {% endif %}
 </div>
 
+{# Loading analytics CSS at the bottom of the template instead of in the head - lets the base
+   styles load first, then our specific overrides. Cleaner than trying to manage load order in base.html #}
 <link rel="stylesheet" href="{% static 'css/analytics.css' %}">
 {% endblock %}
