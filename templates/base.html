@@ -2,35 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    {# Viewport meta tag is critical for mobile responsiveness - without this, the site looks tiny on phones #}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {# Block for title so child templates can override it, but defaults to "AlgoViz Pro" if they don't #}
     <title>{% block title %}AlgoViz Pro{% endblock %}</title>
     {% load static %}
-    {# Loading main stylesheet first so child templates can override styles if needed with extra_css block #}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    {# Extra CSS block for template-specific styles - keeps things modular instead of cramming
-       everything into one massive CSS file #}
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {# Suppressing PyCharm warnings for CSS paths - it doesn't understand Django's static file system
-       but everything resolves fine when the server runs #}
-    {# noinspection CssUnknownTarget,SpellCheckingInspection #}
-
-    {# Fixed navbar at the top - using CSS to make it stick so it's always accessible even when scrolling.
-       Considered a sidebar but navbar is more standard for web apps and works better on mobile #}
     <nav class="navbar">
         <div class="container">
-            {# Brand section with project name and tagline - makes it clear what the app does right away.
-               Wrapping the h1 in a link so clicking the logo takes you home, which users expect #}
             <div class="nav-brand">
                 <h1><a href="/">AlgoViz Pro</a></h1>
                 <p class="tagline">Algorithm Visualization & Analysis</p>
             </div>
-            {# Main navigation links - ordered by importance/workflow: Home first, then the core features
-               (Visualize and Algorithms), followed by the integration features (GitHub and Analytics).
-               This order made sense based on how users would actually use the platform #}
             <ul class="nav-menu">
                 <li><a href="{% url 'visualization:home' %}">Home</a></li>
                 <li><a href="{% url 'visualization:visualize' %}">Visualize</a></li>
@@ -41,23 +25,17 @@
         </div>
     </nav>
 
-    {# Main content area where all child templates inject their content. Wrapped in a main tag
-       for semantic HTML - helps with accessibility and SEO even though that's not graded lol #}
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>
 
-    {# Footer at the bottom with copyright and course info. Kept it simple instead of adding a bunch
-       of links that would just go nowhere. The course mention gives context for why this exists #}
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 AlgoViz Pro - Algorithm Visualization Platform</p>
+            <p>&copy; 2025 AlgoViz Pro - Algorithm Visualization Platform</p>
             <p>Built with Django & Python | INF601 Advanced Programming</p>
         </div>
     </footer>
 
-    {# JavaScript block at the end of body instead of in head - lets the page content load first
-       before running scripts. Better for performance and user experience #}
     {% block extra_js %}{% endblock %}
 </body>
 </html>
