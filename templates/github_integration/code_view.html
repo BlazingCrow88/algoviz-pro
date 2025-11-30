@@ -8,17 +8,18 @@
 
     <div class="file-info" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
         <p><strong>Repository:</strong> {{ repository.full_name }}</p>
-        <p><strong>Language:</strong> {{ code_file.language }}</p>
+        <p><strong>File:</strong> {{ code_file.name }}</p>
         <p><strong>Size:</strong> {{ code_file.size }} bytes</p>
+        <p><strong>Lines:</strong> {{ code_file.get_line_count }}</p>
     </div>
 
     <div class="code-container" style="background: #1e1e1e; padding: 20px; border-radius: 5px; overflow-x: auto;">
-        <pre style="color: #d4d4d4; margin: 0; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>{{ code_file.content }}</code></pre>
+        <pre style="color: #d4d4d4; margin: 0; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5; white-space: pre;"><code>{{ code_file.content }}</code></pre>
     </div>
 
     <div style="margin-top: 20px;">
-        <a href="{% url 'github_integration:repo_detail' owner=repository.owner repo=repository.name %}" class="btn" style="display: inline-block; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to Repository</a>
-        <a href="{{ code_file.html_url }}" target="_blank" class="btn" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">View on GitHub →</a>
+        <a href="{% url 'github_integration:repo_detail' repository.owner repository.name %}" class="btn" style="display: inline-block; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to Repository</a>
+        <a href="https://github.com/{{ repository.full_name }}/blob/main/{{ code_file.path }}" target="_blank" class="btn" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">View on GitHub →</a>
     </div>
 </div>
 
