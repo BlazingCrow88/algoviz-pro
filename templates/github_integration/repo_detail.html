@@ -1,38 +1,29 @@
 {% extends 'base.html' %}
 
-{# Suppressing PyCharm warnings - it complains about the CSS path and some spelling but everything works fine at runtime #}
 {# noinspection CssUnknownTarget,SpellCheckingInspection #}
 
 {% block title %}{{ repository.full_name }} - Repository Details{% endblock %}
 
 {% block content %}
-{# Same inline style approach as code_view - keeps these GitHub pages consistent without needing another stylesheet #}
 <div class="container" style="max-width: 1200px; margin: 100px auto 50px auto; padding: 20px;">
-    {# Blue header border to match GitHub's branding - want the integration to feel like a natural extension of GitHub #}
     <div class="repo-header" style="border-bottom: 2px solid #007bff; padding-bottom: 20px; margin-bottom: 30px;">
         <h1>{{ repository.name }}</h1>
-        {# owner/name format matches how GitHub displays repos everywhere - users will recognize this pattern #}
         <p style="color: #666; font-size: 1.1em;">{{ repository.owner }} / {{ repository.name }}</p>
     </div>
 
-    {# Three stat boxes showing key repo metrics - stars/forks/language are the most important indicators
-       of a repo's popularity and relevance. Grid layout so they're responsive on mobile #}
     <div class="repo-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-        {# Stars indicate popularity - helpful for figuring out if a repo is worth analyzing #}
         <div class="stat-box" style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e9ecef;">
             <div style="font-size: 2em; color: #ffc107;">⭐</div>
             <div style="font-size: 1.5em; font-weight: bold; margin: 10px 0;">{{ repository.stars }}</div>
             <div style="color: #666;">Stars</div>
         </div>
 
-        {# Forks show how many people are actually using/modifying the code #}
         <div class="stat-box" style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e9ecef;">
             <div style="font-size: 2em; color: #17a2b8;">🍴</div>
             <div style="font-size: 1.5em; font-weight: bold; margin: 10px 0;">{{ repository.forks }}</div>
             <div style="color: #666;">Forks</div>
         </div>
 
-        {# Language is important since this tool only handles Python - good to confirm upfront #}
         <div class="stat-box" style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e9ecef;">
             <div style="font-size: 2em; color: #28a745;">📝</div>
             <div style="font-size: 1.5em; font-weight: bold; margin: 10px 0;">{{ repository.language }}</div>
@@ -40,36 +31,24 @@
         </div>
     </div>
 
-    {# Description section with fallback text - some repos don't have descriptions so we need a default.
-       Helps users understand what the repo is about before diving into the code #}
     <div class="repo-description" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
         <h3>Description</h3>
         <p style="color: #666;">{{ repository.description|default:"No description provided." }}</p>
     </div>
 
-    {# Main section - list of Python files. This is the whole point of the page, letting users browse
-       and view specific files from the repo #}
     <div class="python-files" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <h3>Python Files in Repository</h3>
 
-        {# Conditional rendering - only show the file list if we actually found Python files.
-           Keeps the UI clean when repos don't have any Python code #}
         {% if python_files %}
             <div style="margin-top: 20px;">
                 {% for file in python_files %}
-                {# Each file gets its own card with left border accent - makes them easy to scan through.
-                   Flex layout so the button stays right-aligned even with long file paths #}
                 <div class="file-item" style="background: #f8f9fa; padding: 15px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #007bff;">
                     <div>
                         <strong style="color: #007bff;">📄 {{ file.path }}</strong>
-                        {# Showing file size helps users gauge complexity - bigger files usually mean more complex code #}
                         <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9em;">{{ file.size }} bytes</p>
                     </div>
-                    {# Using a POST form instead of a GET link because we're fetching data from GitHub API.
-                       This hits our fetch_code view which handles the API call and caching #}
                     <form method="post" action="{% url 'github_integration:fetch_code' %}" style="margin: 0;">
                         {% csrf_token %}
-                        {# Hidden inputs pass all the info needed to fetch the right file from GitHub API #}
                         <input type="hidden" name="owner" value="{{ repository.owner }}">
                         <input type="hidden" name="repo" value="{{ repository.name }}">
                         <input type="hidden" name="path" value="{{ file.path }}">
@@ -81,13 +60,10 @@
                 {% endfor %}
             </div>
         {% else %}
-            {# Friendly message when no Python files exist - better than showing an empty list #}
             <p style="color: #666; margin-top: 20px;">No Python files found in this repository.</p>
         {% endif %}
     </div>
 
-    {# Navigation buttons - back to search to try another repo, or view on actual GitHub for full context
-       like issues, PRs, commit history, etc. that we don't show here #}
     <div style="margin-top: 30px;">
         <a href="{% url 'github_integration:search' %}" class="btn" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to Search</a>
         <a href="{{ repository.html_url }}" target="_blank" class="btn" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">View on GitHub →</a>
@@ -95,11 +71,9 @@
 </div>
 
 <style>
-    /* Simple hover effect for buttons - makes the interface feel more responsive */
     .btn:hover {
         opacity: 0.9;
     }
-    /* Darker blue on hover for file view buttons - visual feedback that they're clickable */
     .file-item button:hover {
         background: #0056b3;
     }

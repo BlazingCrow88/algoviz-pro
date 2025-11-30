@@ -1,39 +1,37 @@
 """
 Views for the algorithms app.
 
-Handles displaying algorithm info and executing them with user input.
-The execute_algorithm view returns step-by-step states so the frontend
-can animate what's happening in real-time.
+This module handles HTTP requests related to algorithm listing and execution.
+It provides endpoints for displaying available algorithms and executing them
+with user-provided input.
 """
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError
 import json
 import time
 
 from .models import Algorithm, ExecutionLog
 from .sorting import BubbleSort, MergeSort, QuickSort
-from .searching import BinarySearch, LinearSearch
 
-# Maps URL names like 'bubble' to the actual class
-# Makes it easy to add new algorithms without changing views
+# Map algorithm names to their implementation classes
 ALGORITHM_MAP = {
     'bubble': BubbleSort,
     'merge': MergeSort,
     'quick': QuickSort,
-    'binary': BinarySearch,
-    'linear': LinearSearch,
 }
+
+# Maximum array size for visualization
+MAX_ARRAY_SIZE = 100
 
 
 def algorithm_list(request):
     """
-    Show all available algorithms.
+    Display list of available algorithms.
 
-    Pulls algorithms from database and groups them by category
-    so the template can display them in organized sections.
+    This view retrieves all algorithms from the database and displays them
+    in a list with their complexity information.
 
     Args:
         request: HTTP request object
@@ -43,7 +41,7 @@ def algorithm_list(request):
     """
     algorithms = Algorithm.objects.all()
 
-    # Split into categories so template can show separate sections
+    # Group algorithms by category for better organization
     sorting_algos = algorithms.filter(category='SORT')
     searching_algos = algorithms.filter(category='SEARCH')
     graph_algos = algorithms.filter(category='GRAPH')
@@ -61,10 +59,7 @@ def algorithm_list(request):
 
 def algorithm_detail(request, pk):
     """
-    Show details about a specific algorithm.
-
-    Displays complexity info and recent execution logs so users
-    can see how the algorithm performs.
+    Display detailed information about a specific algorithm.
 
     Args:
         request: HTTP request object
@@ -75,7 +70,7 @@ def algorithm_detail(request, pk):
     """
     algorithm = get_object_or_404(Algorithm, pk=pk)
 
-    # Show last 10 runs to give performance examples without cluttering the page
+    # Get recent execution logs for this algorithm
     recent_executions = ExecutionLog.objects.filter(
         algorithm=algorithm
     ).order_by('-executed_at')[:10]
@@ -89,45 +84,69 @@ def algorithm_detail(request, pk):
 
 
 @require_http_methods(["POST"])
-@csrf_exempt  # TODO: Fix this before deploying - needs proper CSRF handling
+@csrf_exempt  # Remove this in production and handle CSRF properly
 def execute_algorithm(request, algo_name):
     """
-    Run an algorithm and return all steps for visualization.
+    Execute algorithm with given input and return steps as JSON.
 
-    Takes an array (and target for searches), executes the algorithm,
-    and returns every intermediate step so JavaScript can animate it.
+    This view handles POST requests containing an array to sort. It executes
+    the requested sorting algorithm and returns all intermediate steps for
+    visualization.
 
     Args:
-        request: POST request with 'array' and optional 'target'
-        algo_name: Which algorithm to run (bubble, merge, quick, etc.)
+        request: HTTP POST request with 'array' parameter
+        algo_name: Name of algorithm to execute ('bubble', 'merge', or 'quick')
 
     Returns:
-        JsonResponse with steps array or error message
+        JsonResponse: JSON containing:
+            - success: Boolean indicating if execution succeeded
+            - steps: List of state dictionaries from algorithm execution
+            - algorithm: Name of algorithm executed
+            - input_size: Size of input array
+            - total_time_ms: Total execution time
+            - comparisons: Total comparison operations
+            - swaps: Total swap operations (if applicable)
 
-    Example:
+        Error responses (JSON with 'error' key):
+            - 400: Invalid input (bad array format, wrong algorithm name, etc.)
+            - 405: Wrong HTTP method (not POST)
+            - 500: Internal server error during execution
+
+    Example request:
         POST /algorithms/execute/bubble/
         Body: array=5,2,8,1,9
 
-        Returns: {"success": true, "steps": [...], "comparisons": 10, ...}
+    Example response:
+        {
+            "success": true,
+            "steps": [
+                {"array": [5,2,8,1,9], "comparing": [0,1], ...},
+                {"array": [2,5,8,1,9], "swapped": [0,1], ...},
+                ...
+                    ]
+            "algorithm": "bubble",
+            "input_size": 5,
+            "total_time_ms": 12.5,
+            "comparisons": 10,
+            "swaps": 4
+        }
     """
     try:
-        # Handle both JSON (from fetch) and form data (from HTML forms)
+        # Parse input array from request
         if request.content_type == 'application/json':
             data = json.loads(request.body)
             array_input = data.get('array', '')
         else:
             array_input = request.POST.get('array', '')
 
-        # Gotta have an array to sort/search
+        # Validate and parse array
         if not array_input:
             return JsonResponse({
                 'error': 'Array input is required',
                 'details': 'Please provide comma-separated integers in the "array" parameter'
             }, status=400)
 
-        # Convert to actual integers
-        # Handle both "5,2,8" strings and [5,2,8] lists
-        # .strip() catches cases like "5, 2, 8" with spaces
+        # Convert string to integer array
         try:
             if isinstance(array_input, str):
                 input_array = [int(x.strip()) for x in array_input.split(',')]
@@ -135,28 +154,27 @@ def execute_algorithm(request, algo_name):
                 input_array = [int(x) for x in array_input]
             else:
                 raise ValueError("Invalid array format")
-        except (ValueError, AttributeError) as e:
+        except (ValueError, AttributeError):
             return JsonResponse({
                 'error': 'Invalid array format',
                 'details': 'Array must be comma-separated integers (e.g., "5,2,8,1,9")'
             }, status=400)
 
-        # Empty array would break everything downstream
+        # Validate array is not empty
         if not input_array:
             return JsonResponse({
                 'error': 'Array cannot be empty',
                 'details': 'Please provide at least one integer'
             }, status=400)
 
-        # Cap at 100 elements - bigger arrays freeze the browser during animation
-        MAX_SIZE = 100
-        if len(input_array) > MAX_SIZE:
+        # Validate array size (prevent performance issues)
+        if len(input_array) > MAX_ARRAY_SIZE:
             return JsonResponse({
-                'error': f'Array too large (maximum {MAX_SIZE} elements)',
+                'error': f'Array too large (maximum {MAX_ARRAY_SIZE} elements)',
                 'details': f'You provided {len(input_array)} elements. Please use a smaller array.'
             }, status=400)
 
-        # Look up which class to use
+        # Get algorithm class
         algo_class = ALGORITHM_MAP.get(algo_name.lower())
         if not algo_class:
             available = ', '.join(ALGORITHM_MAP.keys())
@@ -165,53 +183,18 @@ def execute_algorithm(request, algo_name):
                 'details': f'Available algorithms: {available}'
             }, status=400)
 
-        # Time the execution for performance metrics
+        # Execute algorithm and collect all steps
         start_time = time.time()
         algo = algo_class()
-
-        # Search algorithms work differently than sorting
-        is_searching = algo_name.lower() in ['binary', 'linear']
-
-        if is_searching:
-            # Searches need a target value
-            if request.content_type == 'application/json':
-                target = data.get('target')
-            else:
-                target = request.POST.get('target')
-
-            if target is None:
-                return JsonResponse({
-                    'error': 'Target value required for searching algorithms',
-                    'details': 'Please provide a target value to search for'
-                }, status=400)
-
-            try:
-                target = int(target)
-            except (ValueError, TypeError):
-                return JsonResponse({
-                    'error': 'Invalid target value',
-                    'details': 'Target must be an integer'
-                }, status=400)
-
-            # Binary search only works on sorted arrays
-            if algo_name.lower() == 'binary':
-                input_array.sort()
-
-            # Run the search and collect all steps
-            steps = list(algo.search(input_array, target))
-        else:
-            # Run the sort and collect all steps
-            steps = list(algo.sort(input_array))
-
+        steps = list(algo.sort(input_array))
         execution_time_ms = (time.time() - start_time) * 1000
 
-        # Grab stats from the last step
+        # Get final statistics from last step
         final_step = steps[-1] if steps else {}
         comparisons = final_step.get('comparisons', 0)
         swaps = final_step.get('swaps', 0)
 
-        # Log to database for analytics
-        # If this fails, don't crash the whole request - logging isn't critical
+        # Log execution to database (for analytics)
         try:
             algorithm_obj = Algorithm.objects.filter(
                 name__icontains=algo_name
@@ -226,10 +209,10 @@ def execute_algorithm(request, algo_name):
                     swaps=swaps if swaps else None
                 )
         except Exception as log_error:
-            # Just print it - user doesn't care if logging failed
+            # Don't fail the request if logging fails
             print(f"Failed to log execution: {log_error}")
 
-        # Send back all the steps for visualization
+        # Return successful response
         return JsonResponse({
             'success': True,
             'steps': steps,
@@ -248,7 +231,7 @@ def execute_algorithm(request, algo_name):
         }, status=400)
 
     except Exception as e:
-        # Catch anything weird so we always return JSON
+        # Catch any unexpected errors
         return JsonResponse({
             'error': 'An unexpected error occurred',
             'details': str(e)

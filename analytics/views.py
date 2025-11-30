@@ -1,9 +1,7 @@
 """
 Views for the analytics app.
 
-Handles code complexity analysis submissions and displays results.
-I structured this with separate views for form display vs analysis processing
-to keep the logic clean and make error handling easier.
+Handles code analysis and results display.
 """
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
@@ -14,18 +12,16 @@ import logging
 
 from .complexity_analyzer import ComplexityAnalyzer
 from .models import AnalysisResult, FunctionMetric
+from github_integration.models import CodeFile
 
-# Set up logging so I could track errors in production without cluttering the UI
 logger = logging.getLogger(__name__)
 
 
 def home(request):
     """
-    Analytics landing page showing recent analysis history.
+    Analytics home page.
 
-    I show the 10 most recent analyses so users can quickly access their past
-    results without having to re-analyze code. Limiting to 10 keeps the page
-    fast and prevents database overload.
+    Shows recent analyses and provides interface for new analysis.
     """
     recent_analyses = AnalysisResult.objects.all()[:10]
 
@@ -38,30 +34,25 @@ def home(request):
 
 def analyze(request):
     """
-    Handles code analysis form submission and processing.
+    Code analysis input page.
 
-    GET: Display the empty form for users to paste code
-    POST: Run the complexity analysis and save results to database
-
-    I separated this from the home page so I could handle POST differently and
-    provide better error messages if something goes wrong with the analysis.
+    GET: Show form for code input
+    POST: Analyze code and redirect to results
     """
     if request.method == 'POST':
         source_code = request.POST.get('source_code', '').strip()
 
-        # Validate that user actually submitted code
         if not source_code:
             return render(request, 'analytics/analyze.html', {
                 'error': 'Please provide source code to analyze'
             })
 
         try:
-            # Run the complexity analyzer on the submitted code
+            # Analyze code
             analyzer = ComplexityAnalyzer()
             metrics = analyzer.analyze(source_code)
 
-            # Save the main analysis results to database
-            # This creates the parent record that function metrics will link to
+            # Save results
             analysis = AnalysisResult.objects.create(
                 source_code=source_code,
                 cyclomatic_complexity=metrics['cyclomatic_complexity'],
@@ -72,8 +63,7 @@ def analyze(request):
                 maintainability_index=metrics['maintainability_index']
             )
 
-            # Save individual function metrics as separate records
-            # This lets us query and display the most complex functions later
+            # Save function metrics
             for func_data in metrics['functions']:
                 FunctionMetric.objects.create(
                     analysis=analysis,
@@ -85,53 +75,42 @@ def analyze(request):
                     max_depth=func_data['max_depth']
                 )
 
-            # Redirect to results page instead of rendering directly
-            # This prevents the "resubmit form" issue if user refreshes the page
+            # Redirect to results
             from django.shortcuts import redirect
             return redirect('analytics:results', pk=analysis.id)
 
         except SyntaxError as e:
-            # User submitted invalid Python - show them the error and their code
-            # Preserving their input saves them from having to retype everything
             return render(request, 'analytics/analyze.html', {
                 'error': f'Syntax Error: {str(e)}',
                 'source_code': source_code
             })
         except Exception as e:
-            # Catch any other errors (database issues, unexpected analyzer bugs, etc.)
-            # Log to server but show user-friendly message
             logger.error(f"Analysis error: {e}")
             return render(request, 'analytics/analyze.html', {
                 'error': f'An error occurred: {str(e)}',
                 'source_code': source_code
             })
 
-    # GET request - just show the empty form
+    # GET request - show form
     return render(request, 'analytics/analyze.html')
 
 
 def results(request, pk):
     """
-    Display detailed results for a specific analysis.
+    Display analysis results.
 
-    Shows the complexity metrics, function breakdown, and recommendations.
-    I re-run the analyzer here just to get fresh recommendations, even though
-    we already have the metrics saved. This seemed easier than storing
-    recommendations as JSON in the database.
+    Args:
+        pk: Primary key of AnalysisResult
     """
     analysis = get_object_or_404(AnalysisResult, pk=pk)
     function_metrics = analysis.function_metrics.all()
 
-    # Re-analyze just to generate recommendations
-    # Not the most efficient, but it's fast enough and simpler than serializing
-    # the recommendations list to the database
+    # Re-analyze to get recommendations
     try:
         analyzer = ComplexityAnalyzer()
         metrics = analyzer.analyze(analysis.source_code)
         recommendations = metrics.get('recommendations', [])
     except:
-        # If re-analysis fails for some reason, just skip recommendations
-        # The core metrics are already saved so the page still works
         recommendations = []
 
     context = {
@@ -146,25 +125,18 @@ def results(request, pk):
 
 
 @require_http_methods(["POST"])
-@csrf_exempt  # Allow external tools to hit this API without CSRF token
+@csrf_exempt
 def analyze_api(request):
     """
-    JSON API endpoint for programmatic code analysis.
-
-    I added this so the analytics could be used by external tools or scripts,
-    not just the web interface. The @csrf_exempt decorator is necessary because
-    API clients won't have Django's CSRF token. In a real production app I'd
-    use API keys instead, but this works for the project scope.
+    API endpoint for code analysis.
 
     POST parameters:
         - source_code: Python source code to analyze
 
     Returns:
-        JSON response with analysis metrics and recommendations
+        JSON response with analysis results
     """
     try:
-        # Handle both JSON and form-encoded requests
-        # Some API clients send JSON, others use form data
         if request.content_type == 'application/json':
             data = json.loads(request.body)
         else:
@@ -177,8 +149,7 @@ def analyze_api(request):
                 'error': 'Source code is required'
             }, status=400)
 
-        # Run the analysis and return results as JSON
-        # Don't save to database for API calls since we don't know the source
+        # Analyze code
         analyzer = ComplexityAnalyzer()
         metrics = analyzer.analyze(source_code)
 
@@ -189,13 +160,11 @@ def analyze_api(request):
         })
 
     except SyntaxError as e:
-        # Return 400 for user errors (bad syntax)
         return JsonResponse({
             'error': f'Syntax error in code: {str(e)}'
         }, status=400)
 
     except Exception as e:
-        # Return 500 for server errors (bugs in our code)
         logger.error(f"API analysis error: {e}")
         return JsonResponse({
             'error': f'An error occurred: {str(e)}'
@@ -204,16 +173,11 @@ def analyze_api(request):
 
 def benchmarks(request):
     """
-    Show performance benchmarks comparing algorithm execution times.
-
-    This pulls from the algorithms app's ExecutionLog to show timing data.
-    I kept this simple - just display the raw logs and let users compare.
-    A fancier version would aggregate and chart the data.
+    Display performance benchmarks and comparisons.
     """
     from algorithms.models import ExecutionLog
 
-    # Grab the 100 most recent execution logs
-    # Limiting to 100 keeps the page performant and shows enough data to be useful
+    # Get execution logs for benchmarking
     logs = ExecutionLog.objects.all()[:100]
 
     context = {

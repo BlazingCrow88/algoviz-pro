@@ -7,12 +7,9 @@
     <h1>Search GitHub Repositories</h1>
 
     <div class="search-form">
-        {# POST method here because we're hitting the GitHub API which requires rate limiting and caching.
-           Using POST instead of GET so the search params aren't visible in the URL - cleaner and more secure #}
         <form method="post">
             {% csrf_token %}
 
-            {# Main search input - made it required so users can't submit empty searches and waste API calls #}
             <div class="form-group">
                 <label for="query">Search Query:</label>
                 <input
@@ -26,12 +23,7 @@
                 >
             </div>
 
-            {# Split language and sort into two columns so they fit nicely side by side.
-               This saves vertical space and makes the form look less intimidating #}
             <div class="form-row">
-                {# Python is default since this whole app focuses on Python code analysis.
-                   Added other languages as options in case users want to explore, but we only
-                   actually handle Python files in the analysis features #}
                 <div class="form-group">
                     <label for="language">Language:</label>
                     <select id="language" name="language" class="form-control">
@@ -43,8 +35,6 @@
                     </select>
                 </div>
 
-                {# Sort by stars as default because that's usually the best indicator of quality repos.
-                   Forks and updated date are useful too depending on what users are looking for #}
                 <div class="form-group">
                     <label for="sort">Sort By:</label>
                     <select id="sort" name="sort" class="form-control">
@@ -59,8 +49,6 @@
         </form>
     </div>
 
-    {# Error handling - show GitHub API errors or rate limit issues without crashing the page.
-       Important to display these since API calls can fail for various reasons #}
     {% if error %}
     <div class="error-message">
         <h3>Error</h3>
@@ -68,15 +56,10 @@
     </div>
     {% endif %}
 
-    {# Only show results section if we actually have repositories from the search.
-       Keeps the page clean when users first land on it #}
     {% if repositories %}
     <div class="results-section">
-        {# Showing the count so users know how many results they got - helpful context #}
         <h2>Search Results ({{ repositories|length }})</h2>
 
-        {# Display rate limit info so users know when they're getting close to the API limit.
-           GitHub has strict rate limits (60 requests/hour unauthenticated) so this is important #}
         {% if rate_limit %}
         <div class="rate-limit-info">
             <p>API Rate Limit: {{ rate_limit.remaining }} / {{ rate_limit.limit }} remaining</p>
@@ -85,31 +68,21 @@
 
         <div class="repository-list">
             {% for repo in repositories %}
-            {# Each repo gets a card layout - cleaner than a table and works better on mobile.
-               Cards make it easy to scan through results visually #}
             <div class="repository-card">
                 <h3>
-                    {# Link goes to our repo_detail view instead of directly to GitHub -
-                       want to keep users in our app where they can analyze the code #}
                     <a href="{% url 'github_integration:repo_detail' repo.owner.login repo.name %}">
                         {{ repo.full_name }}
                     </a>
                 </h3>
 
-                {# Fallback to "No description" for repos without descriptions - better than showing nothing #}
                 <p class="description">{{ repo.description|default:"No description" }}</p>
 
-                {# Same three stats as the repo detail page - stars/forks/language are the key metrics.
-                   Emoji make them easier to identify at a glance without reading the labels #}
                 <div class="repo-stats">
                     <span class="stat">⭐ {{ repo.stargazers_count }}</span>
                     <span class="stat">🍴 {{ repo.forks_count }}</span>
                     <span class="stat">📝 {{ repo.language|default:"Unknown" }}</span>
                 </div>
 
-                {# Two action buttons - view on GitHub for the full repo, or go to our detail page
-                   to see Python files and analyze them. "Analyze Code" is primary (blue) because
-                   that's the main goal of this integration #}
                 <div class="repo-actions">
                     <a href="{{ repo.html_url }}" target="_blank" class="btn btn-sm">
                         View on GitHub
@@ -122,8 +95,6 @@
             {% endfor %}
         </div>
     </div>
-    {# Show "no results" message only if user has actually submitted a search (query exists)
-       but no repos were found. Different from the initial page load where query is empty #}
     {% elif query %}
     <div class="no-results">
         <h3>No Results Found</h3>
