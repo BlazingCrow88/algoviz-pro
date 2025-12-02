@@ -6,22 +6,14 @@ structures. Understanding when to use binary vs linear search is fundamental CS.
 
 Implementation note: All these algorithms use generator functions (yield instead
 of return) so we can capture every step of the search process for visualization.
-This was trickier than I expected - had to be careful about when to copy arrays
+This was trickier than I expected - I had to be careful about when to copy arrays
 and when yielding was safe without breaking the visualization state.
 
 Algorithms implemented:
 - Binary Search: O(log n) but REQUIRES sorted data
 - Linear Search: O(n) but works on ANY data
-- Breadth-First Search: O(V+E) for graphs - different beast entirely
-
-The professor will probably test edge cases like:
-- Searching for values not in the array
-- Empty arrays
-- Arrays with one element
-- Target at first/last position
 """
-from typing import List, Dict, Any, Generator, Optional
-from collections import deque
+from typing import List, Dict, Any, Generator
 import time
 
 
@@ -31,9 +23,6 @@ class SearchingAlgorithm:
 
     Why a base class: Avoids code duplication. Both BinarySearch and LinearSearch
     need to track comparisons and execution time, so we define it once here.
-
-    Design note: Searching algorithms don't track "swaps" like sorting algorithms
-    do, since searching doesn't modify the array. Only tracking comparisons.
     """
 
     def __init__(self):
@@ -51,7 +40,7 @@ class SearchingAlgorithm:
         Reset counters before starting a new search.
 
         Why this matters: Without resetting, multiple searches would accumulate
-        stats and we'd get wrong counts. Learned this the hard way when testing!
+        stats, and we'd get wrong counts. Learned this the hard way when testing!
 
         Also sets start_time to current moment so we can calculate execution time.
         """
@@ -61,9 +50,6 @@ class SearchingAlgorithm:
     def get_elapsed_time_ms(self):
         """
         Calculate how long the search has been running.
-
-        Returns time in milliseconds because microseconds would be too precise
-        for our needs and seconds would be too coarse (searches are fast!).
 
         Returns:
             float: Milliseconds since search started, or 0 if not started yet
@@ -95,10 +81,6 @@ class BinarySearch(SearchingAlgorithm):
     because it's more space-efficient (O(1) instead of O(log n) for the call stack)
     and easier to visualize step-by-step.
 
-    Real-world uses:
-    - Database indexes (looking up records)
-    - Auto-complete suggestions (finding matching entries)
-    - Game leaderboards (finding your rank)
     """
 
     def search(
@@ -109,15 +91,9 @@ class BinarySearch(SearchingAlgorithm):
         """
         Search for target value in a sorted array using binary search.
 
-        How it works: Start with left pointer at 0, right pointer at last index.
-        Calculate middle, compare target to middle value, adjust pointers to
-        eliminate half the search space. Repeat until found or pointers cross.
-
-        Edge cases handled:
-        - Empty array: left > right immediately, yields "not found"
-        - Single element: works correctly (left = right = 0)
-        - Target not in array: eventually left > right, yields "not found"
-        - Duplicate values: returns first occurrence found
+        How it works: It starts with left pointer at 0, and right pointer at last index.
+        Then it calculates middle, compares target to middle value, adjust pointers to
+        eliminate half the search space. This repeats until found or pointers cross.
 
         Args:
             arr: List of integers IN SORTED ORDER (ascending)
@@ -128,7 +104,7 @@ class BinarySearch(SearchingAlgorithm):
             dict: State at each step showing:
                 - What we're comparing
                 - Which half of array we're searching
-                - Current left/right/mid pointers
+                - Current left/right/mid-pointers
                 - Whether we found it
 
         Generator pattern: Using yield instead of return lets us pause execution
@@ -258,14 +234,6 @@ class LinearSearch(SearchingAlgorithm):
     4. **Already found early**: If the target is likely to be near the beginning,
        linear search's best case O(1) beats binary search's O(log n).
 
-    Real-world example: Finding a specific email in your inbox. If it's a recent
-    email, starting at the top (linear) finds it faster than binary search would.
-
-    Professor might test:
-    - Target at first position (best case - 1 comparison)
-    - Target at last position (worst case - n comparisons)
-    - Target not in array (worst case - n comparisons)
-    - Empty array (should handle gracefully)
     """
 
     def search(
@@ -277,7 +245,7 @@ class LinearSearch(SearchingAlgorithm):
         Search for target by checking each element sequentially.
 
         Simple algorithm: Start at index 0, check if it matches target.
-        If not, move to index 1, check again. Continue until found or
+        If not, move to index 1, check again. Continue until found, or
         we reach the end of the array.
 
         Advantage: Works on UNSORTED data (unlike binary search).
@@ -290,9 +258,6 @@ class LinearSearch(SearchingAlgorithm):
         Yields:
             dict: State at each comparison showing which index we're checking
 
-        Implementation note: Using a simple for loop since we're just going
-        through elements sequentially. No fancy pointer arithmetic needed like
-        binary search.
         """
         self.reset_stats()
 
@@ -348,209 +313,3 @@ class LinearSearch(SearchingAlgorithm):
             'complete': True,
             'step_type': 'not_found'
         }
-
-
-class BreadthFirstSearch:
-    """
-    Breadth-First Search (BFS) - graph traversal algorithm.
-
-    This is different from the other searches: it works on GRAPHS, not arrays.
-    A graph is a collection of nodes (vertices) connected by edges.
-
-    The BFS strategy: Explore all neighbors of the current node before moving
-    to the next level. Like ripples in a pond spreading outward.
-
-    Example: Social network - finding how you're connected to someone
-    Level 0: You
-    Level 1: Your direct friends
-    Level 2: Friends of friends
-    Level 3: Friends of friends of friends
-
-    Why it's O(V + E):
-    - V (vertices): We visit each node once
-    - E (edges): We examine each edge once when checking neighbors
-    - Total: V + E operations
-
-    Space complexity O(V): In worst case, queue could contain all nodes
-    (imagine a star graph where one node connects to all others).
-
-    Key data structures:
-    - Queue (deque): FIFO - ensures we process nodes level by level
-    - Set (visited): Prevents infinite loops in cyclic graphs
-    - Dict (parent): Lets us reconstruct the path from start to target
-
-    Why use BFS instead of DFS?
-    - BFS finds SHORTEST path in unweighted graphs
-    - DFS finds A path, but not necessarily the shortest
-
-    Real-world uses:
-    - GPS navigation (finding shortest route)
-    - Social network analysis (degrees of separation)
-    - Web crawlers (exploring websites level by level)
-    - Network broadcasting
-
-    Implementation note: Using deque from collections because it has O(1) append
-    and popleft operations. Regular list would be O(n) for pop(0).
-    """
-
-    def __init__(self):
-        """
-        Initialize BFS-specific tracking.
-
-        Note: BFS doesn't extend SearchingAlgorithm because graphs are different
-        enough from arrays that the base class doesn't help much. Different data
-        structure = different tracking needs.
-        """
-        self.visited = set()  # Track which nodes we've seen (prevents cycles)
-        self.start_time = None  # For timing the search
-
-    def search(
-            self,
-            graph: Dict[int, List[int]],
-            start: int,
-            target: Optional[int] = None
-    ) -> Generator[Dict[str, Any], None, None]:
-        """
-        Perform breadth-first search on a graph.
-
-        Two modes of operation:
-        1. If target is provided: Search for that specific node, return path when found
-        2. If target is None: Traverse entire graph (useful for graph analysis)
-
-        Graph representation: Using adjacency list (dict where keys are nodes and
-        values are lists of neighbor nodes). This is more space-efficient than an
-        adjacency matrix for sparse graphs.
-
-        Example graph:
-        {
-            1: [2, 3],      # Node 1 connects to nodes 2 and 3
-            2: [1, 4],      # Node 2 connects to nodes 1 and 4
-            3: [1, 4],      # Node 3 connects to nodes 1 and 4
-            4: [2, 3]       # Node 4 connects to nodes 2 and 3
-        }
-
-        Args:
-            graph: Adjacency list {node: [list of neighbors]}
-            start: Which node to start the search from
-            target: Optional - specific node to find (None means traverse all)
-
-        Yields:
-            dict: State information showing:
-                - Current node being visited
-                - Contents of the queue
-                - Which nodes have been visited
-                - Path to target (if found)
-
-        Edge cases:
-        - Start node not in graph: Will visit just that node (neighbors = empty list)
-        - Disconnected graph: Will only visit nodes reachable from start
-        - Cyclic graph: visited set prevents infinite loops
-        """
-        self.start_time = time.time()
-        self.visited = set()  # Reset visited set for this search
-
-        # Queue starts with just the start node
-        # Using deque because popleft() is O(1) vs list.pop(0) which is O(n)
-        queue = deque([start])
-
-        # Track parent of each node to reconstruct path later
-        parent = {start: None}  # Start node has no parent
-
-        # Track distance/level of each node from start
-        level = {start: 0}  # Start node is at level 0
-
-        # Show initial state
-        yield {
-            'graph': graph,
-            'start': start,
-            'target': target,
-            'queue': list(queue),  # Convert deque to list for JSON serialization
-            'visited': list(self.visited),
-            'message': f'Starting BFS from node {start}',
-            'step_type': 'start'
-        }
-
-        # Main BFS loop - continues while queue has nodes to process
-        while queue:
-            # Remove node from front of queue (FIFO)
-            node = queue.popleft()
-
-            # Check if we've already visited this node
-            # (Could happen if multiple paths lead to same node)
-            if node not in self.visited:
-                self.visited.add(node)  # Mark as visited NOW to avoid revisiting
-
-                # Show that we're visiting this node
-                yield {
-                    'graph': graph,
-                    'current_node': node,
-                    'queue': list(queue),
-                    'visited': list(self.visited),
-                    'level': level[node],
-                    'message': f'Visiting node {node} at level {level[node]}',
-                    'step_type': 'visit'
-                }
-
-                # Check if this is the target we're looking for
-                if target is not None and node == target:
-                    # Reconstruct path from start to target by following parent pointers
-                    path = []
-                    current = node
-                    while current is not None:
-                        path.append(current)
-                        current = parent[current]  # Move to parent
-                    path.reverse()  # We built path backwards, so reverse it
-
-                    yield {
-                        'graph': graph,
-                        'found': True,
-                        'target': target,
-                        'path': path,  # Shortest path from start to target
-                        'visited': list(self.visited),
-                        'message': f'Found target {target}! Path: {path}',
-                        'complete': True,
-                        'step_type': 'found'
-                    }
-                    return  # Stop searching - we found it
-
-                # Add all unvisited neighbors to the queue
-                # This is the "breadth" part - we queue all neighbors before moving deeper
-                for neighbor in graph.get(node, []):  # .get() handles missing nodes gracefully
-                    # Only add if we haven't visited and it's not already in queue
-                    if neighbor not in self.visited and neighbor not in queue:
-                        queue.append(neighbor)  # Add to back of queue
-                        parent[neighbor] = node  # Remember how we got to this neighbor
-                        level[neighbor] = level[node] + 1  # One level deeper than current node
-
-                        yield {
-                            'graph': graph,
-                            'current_node': node,
-                            'neighbor': neighbor,
-                            'queue': list(queue),
-                            'visited': list(self.visited),
-                            'message': f'Adding neighbor {neighbor} to queue',
-                            'step_type': 'enqueue'
-                        }
-
-        # Queue is empty - we've visited all reachable nodes
-        if target is None:
-            # No specific target, just traversing the graph
-            yield {
-                'graph': graph,
-                'visited': list(self.visited),
-                'message': 'BFS traversal complete',
-                'complete': True,
-                'step_type': 'complete'
-            }
-        else:
-            # We were looking for a specific target but didn't find it
-            # This means target is not reachable from start node
-            yield {
-                'graph': graph,
-                'found': False,
-                'target': target,
-                'visited': list(self.visited),
-                'message': f'Target {target} not found in graph (may be disconnected)',
-                'complete': True,
-                'step_type': 'not_found'
-            }

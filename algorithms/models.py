@@ -25,7 +25,7 @@ class Algorithm(models.Model):
     """
     Stores metadata about each algorithm in the system.
 
-    Why this model exists: We need a central place to store information about
+    Why this model exists: I needed a central place to store information about
     each algorithm - its name, what category it belongs to, complexity analysis,
     etc. This acts like a "catalog" of available algorithms.
 
@@ -36,13 +36,13 @@ class Algorithm(models.Model):
     (through the foreign key relationship), but each Algorithm only exists once.
     """
 
-    # Category choices - keeping it simple with just three main types
+    # Category choices - keeping it simple with just five main types
     # Could expand this later (like adding "tree" or "dynamic programming")
     # but these three cover all the algorithms I implemented for this project
     CATEGORY_CHOICES = [
         ('SORT', 'Sorting'),      # Bubble, Merge, Quick Sort
-        ('SEARCH', 'Searching'),  # Binary Search, Linear Search, BFS
-        ('GRAPH', 'Graph'),       # BFS (also counts as graph algorithm)
+        ('SEARCH', 'Searching'),  # Binary Search, Linear Search,
+        ('GRAPH', 'Graph'),       # BFS (also counts as graph algorithm I ended up not having the time to implement.)
     ]
 
     # --- BASIC INFORMATION FIELDS ---
@@ -119,7 +119,7 @@ class Algorithm(models.Model):
         in the admin interface.
         """
 
-        # Default ordering for querysets - shows algorithms grouped by category
+        # Default ordering for query sets - shows algorithms grouped by category
         # then alphabetically by name. Makes the admin panel and views more organized.
         ordering = ['category', 'name']
 
@@ -192,12 +192,10 @@ class ExecutionLog(models.Model):
     # One Algorithm can have many ExecutionLogs, but each log belongs to one Algorithm
     algorithm = models.ForeignKey(
         Algorithm,
-        on_delete=models.CASCADE,  # If Algorithm is deleted, delete all its logs too
+        on_delete=models.CASCADE,  # If Algorithm is deleted, delete all its logs too (prevent orphaned data)
         related_name='executions',  # Lets us do: algorithm.executions.all()
         help_text="The algorithm that was executed"
     )
-    # CASCADE is important: If we delete "Bubble Sort" from the database, we also
-    # delete all execution logs for it (prevents orphaned data)
 
     # --- EXECUTION CONTEXT ---
 
@@ -258,7 +256,7 @@ class ExecutionLog(models.Model):
             # Index on executed_at (descending) for "show me recent executions"
             models.Index(fields=['-executed_at']),
 
-            # Composite index for "show me all executions of Bubble Sort with 100 elements"
+            # Composite index for "show me all executions of Bubble Sort with 50 elements"
             models.Index(fields=['algorithm', 'input_size']),
         ]
         # These speed up the analytics page where we compare algorithm performance
