@@ -1,17 +1,17 @@
 """
 Database models for the algorithms app.
 
-Why we need these models:
-The whole point of this project is to visualize and analyze algorithms, so we
-need to store information about each algorithm (name, complexity, etc.) and
+Why I needed these models:
+The whole point of this project is to visualize and analyze algorithms, so I
+needed to store information about each algorithm (name, complexity, etc.) and
 track every time an algorithm runs (execution time, comparisons, swaps).
 
 Design decision: Split into TWO models instead of one:
 - Algorithm: Stores static info about each algorithm (one record per algorithm)
 - ExecutionLog: Stores dynamic data from each run (many records per algorithm)
 
-This is a classic one-to-many relationship in database design. Could have
-combined them, but then we'd duplicate algorithm metadata for every execution,
+This is a classic one-to-many relationship in database design. I could have
+combined them, but then I'd duplicate algorithm metadata for every execution,
 which would be inefficient and harder to maintain.
 
 Django note: These models become database tables automatically when we run
