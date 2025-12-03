@@ -176,7 +176,7 @@ All 23 tests pass consistently. I ran them a bunch of times to make sure they're
 
 ##  Technologies Used
 
-- **Backend:** Django 5.2.7
+- **Backend:** Django 5.1.7
 - **Database:** SQLite
 - **Frontend:** HTML5, CSS3, JavaScript
 - **Visualization:** HTML5 Canvas API
