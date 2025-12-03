@@ -3,7 +3,6 @@
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Django](https://img.shields.io/badge/django-5.2-green.svg)
 ![Tests](https://img.shields.io/badge/tests-23%20passed-success)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 A comprehensive web-based platform for visualizing sorting and searching algorithms,
 analyzing Python code complexity, and integrating with GitHub repositories.
@@ -14,7 +13,7 @@ analyzing Python code complexity, and integrating with GitHub repositories.
 
 ---
 
-## 🎯 Features
+##  Features
 
 ### Algorithm Visualization
 - **Sorting Algorithms:** Bubble Sort, Merge Sort, Quick Sort
@@ -39,7 +38,7 @@ analyzing Python code complexity, and integrating with GitHub repositories.
 
 ---
 
-## 📋 Requirements
+##  Requirements
 
 - Python 3.9 or higher
 - pip (Python package manager)
@@ -47,7 +46,7 @@ analyzing Python code complexity, and integrating with GitHub repositories.
 
 ---
 
-## 🚀 Installation
+##  Installation
 
 ### 1. Clone the Repository
 ```bash
@@ -91,7 +90,7 @@ Visit http://127.0.0.1:8000/ in your browser.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 ```
 algoviz-pro/
 ├── algorithms/             # Algorithm implementations
@@ -118,7 +117,7 @@ algoviz-pro/
 
 ---
 
-## 💻 Usage
+##  Usage
 
 ### Visualizing Algorithms
 
@@ -145,7 +144,7 @@ algoviz-pro/
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 I wrote 23 automated tests to make sure everything actually works. They cover the core algorithms, edge cases, and the GitHub integration.
 
@@ -175,7 +174,7 @@ All 23 tests pass consistently. I ran them a bunch of times to make sure they're
 
 ---
 
-## 📊 Technologies Used
+##  Technologies Used
 
 - **Backend:** Django 5.2.7
 - **Database:** SQLite
@@ -186,7 +185,7 @@ All 23 tests pass consistently. I ran them a bunch of times to make sure they're
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ### Django Apps
 
@@ -203,7 +202,7 @@ All 23 tests pass consistently. I ran them a bunch of times to make sure they're
 
 ---
 
-## 📝 Development Notes
+##  Development Notes
 
 ### Adding a New Algorithm
 
@@ -222,25 +221,8 @@ All 23 tests pass consistently. I ran them a bunch of times to make sure they're
 
 ---
 
-## 🤝 Contributing
 
-This is a student project for INF601. Contributions are welcome!
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-## 👨‍💻 Author
+##  Author
 
 **Brian Shoemaker**  
 Computer Science Concentration  
@@ -248,7 +230,7 @@ INF601 - Advanced Programming with Python
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - Django documentation and community
 - GitHub API documentation
@@ -257,10 +239,9 @@ INF601 - Advanced Programming with Python
 
 ---
 
-## 📧 Contact
+##  Contact
 
 For questions or feedback, please open an issue on GitHub.
 
 ---
 
-**Built with ❤️ for CS education**
