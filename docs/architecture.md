@@ -64,7 +64,7 @@ everything into one. Each app has a specific job:
 **Main files:**
 - `models.py` - Database models for algorithms and execution logs
 - `sorting.py` - All the sorting algorithms (Bubble, Merge, Quick Sort)
-- `searching.py` - Search algorithms (Binary, Linear, BFS)
+- `searching.py` - Search algorithms (Binary, Linear,)
 - `views.py` - Handles HTTP requests for running algorithms
 - `urls.py` - Routes URLs to the right view functions
 - `tests.py` - Unit tests (these saved me a few times)

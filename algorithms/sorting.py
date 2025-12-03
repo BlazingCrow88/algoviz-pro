@@ -1,24 +1,15 @@
 """
 Sorting algorithm implementations with step-by-step visualization.
 
-Why this file exists: This is the core of the whole project - implementing
-classic sorting algorithms from scratch (not just calling Python's sorted()).
+Implementation challenge: Made algorithms PAUSABLE for visualization using Python
+generators (yield). Originally tried returning list of all states, but that used
+too much memory. Generators allow streaming visualization as algorithm runs.
 
-Implementation challenge: The tricky part was making these algorithms PAUSABLE
-for visualization. Normal sorting functions just return the sorted array, but
-I needed to show every comparison and swap as it happens. This required using
-Python generators (yield instead of return), which took me a while to get right.
-
-Originally tried
-making the algorithms return a list of all states, but that used too much memory
-for large arrays and didn't allow streaming the visualization.
-
-All three algorithms share a common pattern:
-1. Inherit from SortingAlgorithm base class (for stat tracking)
-2. Implement sort() as a generator function
-3. Yield state dicts showing current array, what we're comparing, etc.
-4. Track comparisons and swaps for performance analysis
-
+All algorithms share common pattern:
+1. Inherit from SortingAlgorithm (stat tracking)
+2. Implement sort() as generator
+3. Yield state dicts for visualization
+4. Track comparisons and swaps
 """
 from typing import List, Dict, Any, Generator
 import time
@@ -26,225 +17,153 @@ import time
 
 class SortingAlgorithm:
     """
-    Base class for all sorting algorithms - avoids code duplication.
+    Base class for sorting algorithms.
 
-    Why a base class: All three sorting algorithms need to track the same stats
-    (comparisons, swaps, execution time). Rather than copy-paste this code three
-    times, I put it in a base class and inherit from it.
-
+    Why a base class: All algorithms need same stat tracking (comparisons,
+    swaps, execution time). Avoids duplicating this code three times.
     """
 
     def __init__(self):
-        """
-        Initialize performance tracking counters.
-
-        These counters let us measure how much work the algorithm does:
-        - comparisons: How many times do we check if a < b?
-        - swaps: How many times do we exchange two elements?
-        - start_time: When did we start? (for measuring execution time)
-
-        All start at zero/None and get reset each time sort() is called.
-        """
-        self.comparisons = 0  # Total element comparisons made
-        self.swaps = 0  # Total element swaps made
-        self.start_time = None  # Timestamp when sorting started
+        """Initialize performance tracking counters."""
+        self.comparisons = 0
+        self.swaps = 0
+        self.start_time = None
 
     def reset_stats(self):
         """
-        Reset all counters before starting a new sort.
+        Reset counters before starting new sort.
 
-        Why this matters: If we don't reset, stats from previous sorts accumulate,
-        and we get wrong totals. Took me a while to debug this - was seeing
-        comparison counts in the thousands for a 10-element array until I realized
-        I forgot to reset between test runs!
-
+        Without resetting, stats from previous sorts accumulate. Discovered
+        this bug during testing when seeing thousands of comparisons for
+        10-element arrays!
         """
         self.comparisons = 0
         self.swaps = 0
-        self.start_time = time.time()  # Get current timestamp
+        self.start_time = time.time()
 
     def get_elapsed_time_ms(self):
-        """
-        Calculate how long the algorithm has been running.
-
-        Returns:
-            float: Milliseconds elapsed since reset_stats() was called.
-                   Returns 0.0 if sorting hasn't started yet.
-
-        Implementation note: time.time() returns seconds as a float, so we
-        multiply by 1000 to convert to milliseconds.
-        """
+        """Calculate milliseconds elapsed since sorting started."""
         if self.start_time is None:
-            return 0.0  # Haven't started yet
+            return 0.0
         return (time.time() - self.start_time) * 1000
 
 
 class BubbleSort(SortingAlgorithm):
     """
-    Bubble Sort - the simplest sorting algorithm (and usually the slowest).
+    Bubble Sort - simplest sorting algorithm.
 
-    The basic idea: Repeatedly step through the array, compare adjacent elements,
-    and swap them if they're in the wrong order. Each pass "bubbles" the largest
-    unsorted element to its final position at the end of the array.
+    Algorithm: Repeatedly step through array, compare adjacent elements,
+    swap if wrong order. Each pass bubbles largest unsorted element to end.
 
+    Time Complexity: O(n²) average/worst, O(n) best (already sorted)
+    Space Complexity: O(1)
     """
 
     def sort(self, arr: List[int]) -> Generator[Dict[str, Any], None, None]:
         """
-        Sort array using bubble sort, yielding state at each step for visualization.
+        Sort array using bubble sort, yielding states for visualization.
 
-        Generator pattern: This function YIELDS instead of RETURNING. Each yield
-        pauses execution and sends a state dictionary to the caller. The caller
-        (visualization code) can then display that state and request the next one.
-
-        Why generators instead of returning a list of states:
-        1. Memory efficient: Don't need to store all states in memory at once
-        2. Streaming: Can start visualizing before algorithm finishes
-        3. Lazy evaluation: Only compute states as needed
-
-        The state dictionary we yield contains everything needed for visualization:
-        - array: Current state of the array (always a COPY, never reference)
-        - comparing: Which indices we're currently comparing
-        - swapped: Which indices just got swapped
-        - sorted_region: Which indices are in their final position
-        - comparisons/swaps: Running totals
-        - message: Human-readable description
+        Why generators: Memory efficient, allows streaming visualization,
+        only computes states as needed.
 
         Args:
-            arr: List of integers to sort (gets COPIED, not modified)
+            arr: List to sort (gets copied, not modified)
 
         Yields:
-            dict: State information at each significant step
-
+            dict: State showing array, comparing indices, swaps, stats
         """
-        self.reset_stats()  # Start fresh - zero out counters and start timer
+        self.reset_stats()
         n = len(arr)
+        arr = arr.copy()  # Don't modify original
 
-        # CRITICAL: Copy the array so we don't modify the original
-        # If we didn't copy, the user's original array would get sorted as a side
-        # effect, which violates the principle of least surprise. Plus, we need
-        # to yield copies of the array at each step anyway.
-        arr = arr.copy()
-
-        # Outer loop: Each iteration bubbles one element to its final position
-        # After i iterations, the last i elements are in their final sorted positions
         for i in range(n):
-            # Track if we made any swaps this pass
-            # If we don't swap anything, the array is sorted and we can exit early
-            swapped = False
+            swapped = False  # Track if any swaps this pass
 
-            # Inner loop: Compare adjacent pairs
-            # Stop at n-i-1 because the last i elements are already in final position
-            # Example: If n=5 and i=2, we only need to check indices 0,1,2 (stop at 3)
-            # because indices 3 and 4 are already sorted from previous passes
+            # Only check up to n-i-1 because last i elements already sorted
             for j in range(0, n - i - 1):
-                self.comparisons += 1  # Count every comparison for stats
+                self.comparisons += 1
 
-                # Yield state showing which two elements we're comparing
-                # The visualization can highlight these indices on screen
                 yield {
-                    'array': arr.copy(),  # MUST copy - visualization needs a snapshot
-                    'comparing': [j, j + 1],  # Indices of elements being compared
-                    'sorted_region': list(range(n - i, n)),  # Last i elements are done
+                    'array': arr.copy(),
+                    'comparing': [j, j + 1],
+                    'sorted_region': list(range(n - i, n)),
                     'comparisons': self.comparisons,
                     'swaps': self.swaps,
                     'time_ms': self.get_elapsed_time_ms(),
                     'message': f'Comparing {arr[j]} and {arr[j + 1]}',
-                    'step_type': 'compare'  # Helps visualization color-code the step
+                    'step_type': 'compare'
                 }
 
-                # Check if these two elements are in wrong order
                 if arr[j] > arr[j + 1]:
-                    # Swap using Python's tuple unpacking
-                    # More elegant than: temp = arr[j]; arr[j] = arr[j+1]; arr[j+1] = temp
                     arr[j], arr[j + 1] = arr[j + 1], arr[j]
                     self.swaps += 1
-                    swapped = True  # Remember we made a swap this pass
+                    swapped = True
 
-                    # Yield state showing the swap just happened
                     yield {
                         'array': arr.copy(),
-                        'swapped': [j, j + 1],  # Which indices just swapped
+                        'swapped': [j, j + 1],
                         'sorted_region': list(range(n - i, n)),
                         'comparisons': self.comparisons,
                         'swaps': self.swaps,
                         'time_ms': self.get_elapsed_time_ms(),
-                        'message': f'Swapped {arr[j + 1]} and {arr[j]}! Array now: {arr}',
+                        'message': f'Swapped {arr[j + 1]} and {arr[j]}',
                         'step_type': 'swap'
                     }
 
-            # Early termination optimization: If we went through an entire pass
-            # without swapping anything, the array must be sorted already
-            # This is what makes best-case complexity O(n) instead of O(n²)
+            # Early termination: no swaps means array is sorted
             if not swapped:
-                break  # Exit outer loop early
+                break
 
-        # Algorithm complete - yield final sorted state
         yield {
-            'array': arr,  # Final sorted array
-            'sorted_region': list(range(n)),  # All elements are now sorted
+            'array': arr,
+            'sorted_region': list(range(n)),
             'comparisons': self.comparisons,
             'swaps': self.swaps,
             'time_ms': self.get_elapsed_time_ms(),
-            'message': f'Sorting complete! Made {self.comparisons} comparisons and {self.swaps} swaps.',
-            'complete': True,  # Signal to visualization that we're done
+            'message': f'Complete! {self.comparisons} comparisons, {self.swaps} swaps',
+            'complete': True,
             'step_type': 'complete'
         }
 
 
 class MergeSort(SortingAlgorithm):
     """
-    Merge Sort - the "divide and conquer" algorithm with guaranteed O(n log n).
+    Merge Sort - divide and conquer with guaranteed O(n log n).
 
-    The strategy: Recursively split the array in half until you have arrays of
-    size 1 (which are trivially sorted), then merge them back together in sorted
-    order. It's like organizing a shuffled deck by splitting it into smaller piles,
-    sorting each pile, then merging them back together.
+    Algorithm: Recursively split array in half until size 1, then merge back
+    together in sorted order.
 
-    When NOT to use Merge Sort:
-    - Limited memory: O(n) extra space can be prohibitive
-    - Small arrays: Overhead of recursion not worth it (use Insertion Sort)
-    - Need the fastest average case: Quick Sort is usually faster in practice
+    Time Complexity: O(n log n) all cases
+    Space Complexity: O(n) - requires extra memory for merging
+
+    Trade-offs: Guaranteed performance but needs extra memory. Not ideal for
+    small arrays (recursion overhead) or memory-constrained systems.
     """
 
     def sort(self, arr: List[int]) -> Generator[Dict[str, Any], None, None]:
         """
         Sort array using merge sort, yielding visualization states.
 
-        The recursive structure makes this harder to visualize than Bubble Sort
-        because we need to track what's happening at multiple levels of recursion
-        simultaneously. Using "yield from" lets us delegate to recursive calls
-        and still capture all their yielded states.
-
-        Args:
-            arr: List of integers to sort
-
-        Yields:
-            dict: State information showing divide and merge operations
+        Uses "yield from" to delegate to recursive calls and capture all their states.
         """
         self.reset_stats()
-        arr = arr.copy()  # Don't modify original
+        arr = arr.copy()
 
-        # Yield initial state
         yield {
             'array': arr.copy(),
-            'message': 'Starting Merge Sort - will divide and conquer!',
+            'message': 'Starting Merge Sort',
             'comparisons': 0,
-            'swaps': 0,  # Merge Sort doesn't really "swap", but we track it anyway
+            'swaps': 0,
             'time_ms': self.get_elapsed_time_ms(),
             'step_type': 'start'
         }
 
-        # Perform the recursive merge sort
-        # "yield from" is CRITICAL here - it yields all values from the generator
-        # Without "yield from", we'd just yield the generator object itself!
         yield from self._merge_sort_recursive(arr, 0, len(arr) - 1)
 
-        # Final sorted state
         yield {
             'array': arr,
             'sorted_region': list(range(len(arr))),
-            'message': f'Merge Sort complete! Made {self.comparisons} comparisons.',
+            'message': f'Complete! {self.comparisons} comparisons',
             'comparisons': self.comparisons,
             'time_ms': self.get_elapsed_time_ms(),
             'complete': True,
@@ -253,114 +172,69 @@ class MergeSort(SortingAlgorithm):
 
     def _merge_sort_recursive(self, arr: List[int], left: int, right: int) -> Generator:
         """
-        Recursive divide-and-conquer sorting function.
+        Recursive divide-and-conquer sorting.
 
-        This is where the actual algorithm logic lives. We recursively split
-        the array in half until we get subarrays of size 1, then merge them
-        back together in sorted order.
-
-        Args:
-            arr: The array we're sorting (modified in place)
-            left: Start index of subarray to sort
-            right: End index of subarray to sort (inclusive)
-
-        Yields:
-            dict: States showing the divide and merge process
+        Split array in half until size 1, then merge back in sorted order.
         """
-        # Base case: if left >= right, we have 0 or 1 elements (already sorted)
         if left < right:
-            # Find middle point to divide array in half
-            # Using integer division // to get whole number
             mid = (left + right) // 2
 
-            # Yield state showing we're about to divide this subarray
             yield {
                 'array': arr.copy(),
-                'dividing': list(range(left, right + 1)),  # Highlight region being divided
-                'message': f'Dividing range [{left}:{right}] at index {mid}',
+                'dividing': list(range(left, right + 1)),
+                'message': f'Dividing [{left}:{right}] at {mid}',
                 'comparisons': self.comparisons,
                 'time_ms': self.get_elapsed_time_ms(),
                 'step_type': 'divide'
             }
 
-            # Recursively sort the left half [left...mid]
-            # "yield from" propagates all yields from the recursive call up to our caller
+            # Sort left and right halves
             yield from self._merge_sort_recursive(arr, left, mid)
-
-            # Recursively sort the right half [mid+1...right]
             yield from self._merge_sort_recursive(arr, mid + 1, right)
 
-            # Now that both halves are sorted, merge them together
+            # Merge sorted halves
             yield from self._merge(arr, left, mid, right)
 
     def _merge(self, arr: List[int], left: int, mid: int, right: int) -> Generator:
         """
-        Merge two sorted subarrays into one sorted subarray.
+        Merge two sorted subarrays into one.
 
-        This is the "conquer" part of divide-and-conquer. We have two sorted
-        subarrays ([left...mid] and [mid+1...right]) and need to combine them
-        into one sorted subarray.
-
-        The merging algorithm:
-        1. Copy both subarrays to temporary arrays
-        2. Compare first elements of each temp array
-        3. Take the smaller one and put it in the main array
-        4. Repeat until one temp array is empty
-        5. Copy any remaining elements from the other temp array
-
-        Args:
-            arr: The main array containing both subarrays
-            left: Start of first sorted subarray
-            mid: End of first sorted subarray (start of second is mid+1)
-            right: End of second sorted subarray
-
-        Yields:
-            dict: States during the merge process
+        Compares first elements of each subarray, takes smaller one, repeats
+        until one subarray exhausted, then copies remaining elements.
         """
-        # Create temporary copies of the two subarrays we're merging
-        # Left subarray: arr[left...mid]
         left_arr = arr[left:mid + 1]
-        # Right subarray: arr[mid+1...right]
         right_arr = arr[mid + 1:right + 1]
 
-        # Initialize pointers
-        i = j = 0  # Pointers for left_arr and right_arr
-        k = left   # Pointer for main array (where we're writing merged result)
+        i = j = 0
+        k = left
 
-        # Main merge loop: Compare elements from both subarrays and take smaller one
-        # Continues while both subarrays have elements remaining
         while i < len(left_arr) and j < len(right_arr):
-            self.comparisons += 1  # Count the comparison
+            self.comparisons += 1
 
-            # Compare current elements from both subarrays
-            # "<=" instead of "<" maintains stability (left comes first if equal)
+            # Use <= instead of < to maintain stability
             if left_arr[i] <= right_arr[j]:
-                arr[k] = left_arr[i]  # Take from left subarray
-                i += 1  # Move left pointer forward
+                arr[k] = left_arr[i]
+                i += 1
             else:
-                arr[k] = right_arr[j]  # Take from right subarray
-                j += 1  # Move right pointer forward
-            k += 1  # Move main array pointer forward
+                arr[k] = right_arr[j]
+                j += 1
+            k += 1
 
-            # Yield state showing merge in progress
             yield {
                 'array': arr.copy(),
-                'merging': list(range(left, right + 1)),  # Highlight region being merged
-                'message': f'Merging subarrays [{left}:{mid}] and [{mid + 1}:{right}]',
+                'merging': list(range(left, right + 1)),
+                'message': f'Merging [{left}:{mid}] and [{mid + 1}:{right}]',
                 'comparisons': self.comparisons,
                 'time_ms': self.get_elapsed_time_ms(),
                 'step_type': 'merge'
             }
 
-        # Copy any remaining elements from left subarray (if any)
-        # This happens when right subarray was exhausted first
+        # Copy remaining elements
         while i < len(left_arr):
             arr[k] = left_arr[i]
             i += 1
             k += 1
 
-        # Copy any remaining elements from right subarray (if any)
-        # This happens when left subarray was exhausted first
         while j < len(right_arr):
             arr[k] = right_arr[j]
             j += 1
@@ -369,65 +243,45 @@ class MergeSort(SortingAlgorithm):
 
 class QuickSort(SortingAlgorithm):
     """
-    Quick Sort - usually the fastest sorting algorithm in practice.
+    Quick Sort - usually fastest in practice.
 
-    The strategy: Pick a "pivot" element, rearrange the array so elements less
-    than pivot come before it and elements greater come after it (partitioning),
-    then recursively sort the two partitions.
+    Algorithm: Pick pivot, partition array so elements < pivot come before and
+    elements > pivot come after, recursively sort partitions.
 
-    WHY IT'S USUALLY O(n log n):
-    - Good pivot: If pivot splits array roughly in half each time, we get
-      log₂(n) levels of recursion (just like merge sort)
-    - Each level does n work (partitioning touches all elements)
-    - Total: n × log n = O(n log n)
+    Time Complexity:
+    - Average: O(n log n) when pivot splits array roughly in half
+    - Worst: O(n²) when pivot is always smallest/largest (already sorted data)
 
-    WHY IT CAN BE O(n²):
-    - Bad pivot: If pivot is always smallest/largest element, we get n levels
-      of recursion instead of log n
+    Space Complexity: O(log n) for recursion stack
 
-    When NOT to use Quick Sort:
-    - Need guaranteed O(n log n): Use Merge Sort instead
-    - Need stability: Use Merge Sort or Timsort
-    - Already sorted data: Worst case unless using randomized pivot
-    - Critical systems: O(n²) worst case could be catastrophic
+    Trade-offs: Fast average case but unpredictable worst case. Not stable.
+    Use when speed matters more than guaranteed performance.
     """
 
     def sort(self, arr: List[int]) -> Generator[Dict[str, Any], None, None]:
         """
         Sort array using quick sort, yielding visualization states.
 
-        The challenge with Quick Sort visualization: Unlike Merge Sort which
-        creates new subarrays, Quick Sort partitions in place. This makes it
-        more memory-efficient but slightly harder to visualize because we're
-        rearranging elements within the same array.
-
-        Args:
-            arr: List of integers to sort
-
-        Yields:
-            dict: State information showing partitioning and recursion
+        Partitions in place (unlike merge sort which creates subarrays).
         """
         self.reset_stats()
         arr = arr.copy()
 
-        # Yield initial state
         yield {
             'array': arr.copy(),
-            'message': 'Starting Quick Sort - will partition around pivots!',
+            'message': 'Starting Quick Sort',
             'comparisons': 0,
             'swaps': 0,
             'time_ms': self.get_elapsed_time_ms(),
             'step_type': 'start'
         }
 
-        # Perform the recursive quick sort
         yield from self._quick_sort_recursive(arr, 0, len(arr) - 1)
 
-        # Final sorted state
         yield {
             'array': arr,
             'sorted_region': list(range(len(arr))),
-            'message': f'Quick Sort complete! Made {self.comparisons} comparisons and {self.swaps} swaps.',
+            'message': f'Complete! {self.comparisons} comparisons, {self.swaps} swaps',
             'comparisons': self.comparisons,
             'swaps': self.swaps,
             'time_ms': self.get_elapsed_time_ms(),
@@ -437,99 +291,57 @@ class QuickSort(SortingAlgorithm):
 
     def _quick_sort_recursive(self, arr: List[int], low: int, high: int) -> Generator:
         """
-        Recursive quick sort implementation.
+        Recursive quick sort: partition, then sort partitions.
 
-        This follows the standard Quick Sort algorithm: partition, then recursively
-        sort the two partitions.
-
-        GENERATOR RETURN VALUE CHALLENGE: This was tricky! Python generators can
-        RETURN a value (not just yield), but accessing that value requires catching
-        StopIteration. The _partition generator returns the pivot index, which we
-        need for the recursive calls.
-
-        Args:
-            arr: Array being sorted (modified in place)
-            low: Start of partition to sort
-            high: End of partition to sort
-
-        Yields:
-            dict: States during partitioning and recursion
-
-        Base case: low >= high means partition has 0 or 1 elements (sorted)
+        Generator return value handling: Partition generator returns pivot index
+        via StopIteration.value when it ends.
         """
-        # Base case: partition is empty or has one element
         if low < high:
-            # Partition the array and get the pivot's final position
-            # This part took me a while to figure out - generators can return values!
             partition_generator = self._partition(arr, low, high)
             pivot_index = None
 
             try:
-                # Yield all visualization states from partitioning
                 while True:
                     yield next(partition_generator)
             except StopIteration as e:
-                # When the generator ends, it returns the pivot index via exception
-                # This is Python's way of returning from a generator
+                # Pivot index returned via exception
                 pivot_index = e.value
 
-            # Now recursively sort the two partitions
-            # Everything before pivot is less than pivot
-            # Everything after pivot is greater than pivot
-            # Pivot itself is in its final sorted position
             if pivot_index is not None:
+                # Sort partitions (pivot already in final position)
                 yield from self._quick_sort_recursive(arr, low, pivot_index - 1)
                 yield from self._quick_sort_recursive(arr, pivot_index + 1, high)
 
     def _partition(self, arr: List[int], low: int, high: int) -> Generator:
         """
-        Partition array around pivot (Lomuto partition scheme).
+        Partition array around pivot (Lomuto scheme).
 
-        How it works:
-        - i tracks the "boundary" between small and large elements
-        - j scans through the array
-        - When we find element < pivot, swap it to the left side and increment i
-        - At the end, swap pivot into its final position
+        Algorithm: i tracks boundary between small and large elements. When
+        element < pivot found, swap to left side and increment i. Finally,
+        swap pivot into position.
 
-        Args:
-            arr: Array to partition
-            low: Start of partition
-            high: End of partition (contains pivot)
-
-        Yields:
-            dict: States during partitioning process
-
-        Returns:
-            int: Final index where pivot ended up (via StopIteration.value)
+        Returns pivot's final index via StopIteration.value.
         """
-        # Choose last element as pivot (simple but not optimal)
-        # Better implementations use median-of-three or random pivot
-        pivot = arr[high]
+        pivot = arr[high]  # Use last element as pivot
+        i = low - 1  # Index of last element known to be < pivot
 
-        # i is the index of the last element we know is < pivot
-        # Starts at low-1 because we haven't found any yet
-        i = low - 1
-
-        # Yield state showing we selected this pivot
         yield {
             'array': arr.copy(),
             'pivot': high,
-            'message': f'Selected pivot: {pivot} at index {high}',
+            'message': f'Selected pivot: {pivot}',
             'comparisons': self.comparisons,
             'swaps': self.swaps,
             'time_ms': self.get_elapsed_time_ms(),
             'step_type': 'pivot'
         }
 
-        # Scan through partition (excluding pivot)
         for j in range(low, high):
-            self.comparisons += 1  # Count comparison
+            self.comparisons += 1
 
-            # Yield state showing comparison
             yield {
                 'array': arr.copy(),
                 'pivot': high,
-                'comparing': [j, high],  # Comparing current element to pivot
+                'comparing': [j, high],
                 'message': f'Comparing {arr[j]} with pivot {pivot}',
                 'comparisons': self.comparisons,
                 'swaps': self.swaps,
@@ -537,41 +349,34 @@ class QuickSort(SortingAlgorithm):
                 'step_type': 'compare'
             }
 
-            # If element is smaller than pivot, move it to left partition
             if arr[j] < pivot:
-                i += 1  # Expand the "small elements" region
-                # Swap current element with first element in "large" region
+                i += 1
                 arr[i], arr[j] = arr[j], arr[i]
                 self.swaps += 1
 
-                # Yield swap state
                 yield {
                     'array': arr.copy(),
                     'swapped': [i, j],
                     'pivot': high,
-                    'message': f'Swapped {arr[j]} and {arr[i]} (both less than pivot)',
+                    'message': f'Swapped {arr[j]} and {arr[i]}',
                     'comparisons': self.comparisons,
                     'swaps': self.swaps,
                     'time_ms': self.get_elapsed_time_ms(),
                     'step_type': 'swap'
                 }
 
-        # Put pivot in its final position
-        # i+1 is the first element >= pivot, so swap pivot there
+        # Place pivot in final position
         arr[i + 1], arr[high] = arr[high], arr[i + 1]
         self.swaps += 1
 
-        # Yield final partition state
         yield {
             'array': arr.copy(),
             'swapped': [i + 1, high],
-            'message': f'Placed pivot {pivot} in final position at index {i + 1}',
+            'message': f'Pivot {pivot} in final position at {i + 1}',
             'comparisons': self.comparisons,
             'swaps': self.swaps,
             'time_ms': self.get_elapsed_time_ms(),
             'step_type': 'partition_complete'
         }
 
-        # Return pivot's final index
-        # This gets accessed via StopIteration.value in the recursive function
         return i + 1

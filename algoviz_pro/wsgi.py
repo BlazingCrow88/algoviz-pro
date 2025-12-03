@@ -1,16 +1,14 @@
 """
-WSGI config for algoviz_pro project.
+WSGI configuration for AlgoViz Pro.
 
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.0/howto/deployment/wsgi/
+Standard Django WSGI setup for production deployment with servers
+like Gunicorn or uWSGI.
 """
 
 import os
-
 from django.core.wsgi import get_wsgi_application
 
+# Set Django settings module (must run before get_wsgi_application)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'algoviz_pro.settings')
 
 application = get_wsgi_application()

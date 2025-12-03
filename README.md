@@ -18,7 +18,7 @@ analyzing Python code complexity, and integrating with GitHub repositories.
 
 ### Algorithm Visualization
 - **Sorting Algorithms:** Bubble Sort, Merge Sort, Quick Sort
-- **Searching Algorithms:** Binary Search, Linear Search, Breadth-First Search
+- **Searching Algorithms:** Binary Search, Linear Search
 - **Interactive Controls:** Play, Pause, Step-by-step execution
 - **Real-time Statistics:** Comparisons, swaps, time complexity
 - **HTML5 Canvas Visualization:** Smooth animations
